@@ -1,6 +1,14 @@
-# V1.4.0 verification — 30 October 2026
+# V1.4.1 verification — 30 October 2026
 
 Implemented against `Brief1.1-1.4`. Version boundaries are recorded in [RELEASES.md](RELEASES.md). These are development packages, with no GitHub publication or website deployment.
+
+## Desktop mode follow-up
+
+The signed-in user is now the default for installed desktop launches. Configuration routing, explicit mode selection, read-only folder checks and failure rollback are covered by tests. The process smoke asserts that the runtime identity matches the signed-in account and stubs `pkexec` to fail if desktop startup unexpectedly requests elevation. Source fixtures and private source permissions remain unchanged.
+
+Unattended service setup is tested with simulated native-service operations for successful ordering (check access before enabling boot startup) and failure rollback (restore existing settings, preserve a backup, do not enable startup on denied access). These are behavioural tests of the transaction; they do not establish that PolicyKit, UAC or real booted service transitions have been exercised.
+
+The Linux control window has been checked on a virtual display. Real install/upgrade migration, native service access checks and Windows dialogs still require the target-host steps below.
 
 ## Verified in this environment
 
@@ -21,6 +29,6 @@ No Windows runtime or disposable booted systemd VM is available in this workspac
 - Windows Forms, UAC elevation, SCM startup/shutdown/recovery and Windows filesystem permissions at runtime.
 - Actual DEB/EXE installation, upgrade, boot without login, startup enable/disable, removal/purge and preservation of user data on both platforms.
 - Real desktop browser integration, accessibility/scaling and signed distribution. Builds are unsigned.
-- Discovery of a published 1.4.0 release; no such publication was performed here.
+- Discovery of a published 1.4.1 release; no such publication was performed here.
 
 Source banking implementations were preserved. No future adapter, periodic scan feature, mini API, remote banking connection or Discord integration was added. Existing configured daily scans remain operational.

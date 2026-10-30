@@ -16,9 +16,12 @@ $label.Size = New-Object System.Drawing.Size(475,135)
 $form.Controls.Add($label)
 function Refresh-Status {
  $state = & $env:VIEWER_EXE -config $env:VIEWER_CONFIG -control status 2>&1 | Out-String
- $boot = Get-Service DayZBankViewer -ErrorAction SilentlyContinue
- $startup = if ($boot) { $boot.StartType } else { 'Service not installed' }
+ $startup = if ($state -match 'Unattended service') { 'Runs without signing in' } else { 'Off — running as you' }
  $label.Text = "DayZ Bank Viewer $env:VIEWER_VERSION`n$state`nStartup: $startup"
+ foreach ($control in $form.Controls) {
+  if ($control.Text -eq 'Run without signing in…') { $control.Enabled = $state -notmatch 'Unattended service' }
+  if ($control.Text -eq 'Switch back to desktop mode') { $control.Enabled = $state -match 'Unattended service' }
+ }
 }
 function Show-About {
  $about = New-Object System.Windows.Forms.Form
@@ -50,7 +53,7 @@ function Invoke-Control($action) {
  if ($LASTEXITCODE -ne 0) { [System.Windows.Forms.MessageBox]::Show($output,'DayZ Bank Viewer') | Out-Null }
  Refresh-Status
 }
-$buttons = @('Open dashboard','Start viewer','Stop viewer','Restart viewer','Check for updates','Start automatically when the computer starts','Disable automatic startup','About and licence')
+$buttons = @('Open dashboard','Start viewer','Stop viewer','Restart viewer','Check for updates','Run without signing in…','Switch back to desktop mode','About and licence')
 $y = 165
 foreach ($caption in $buttons) {
  $button = New-Object System.Windows.Forms.Button
@@ -62,7 +65,7 @@ foreach ($caption in $buttons) {
   switch ($this.Text) {
    'Open dashboard' {
     Invoke-Control 'start'
-    try { $s = Get-Content -Raw ($env:VIEWER_CONFIG + '.status') | ConvertFrom-Json; Start-Process $s.url } catch { [System.Windows.Forms.MessageBox]::Show($_.Exception.Message) }
+    try { $url = (& $env:VIEWER_EXE -config $env:VIEWER_CONFIG -control dashboard | Out-String).Trim(); if ($LASTEXITCODE -eq 0) { Start-Process $url } } catch { [System.Windows.Forms.MessageBox]::Show($_.Exception.Message) }
    }
    'Start viewer' { Invoke-Control 'start' }
    'Stop viewer' { Invoke-Control 'stop' }
@@ -74,10 +77,10 @@ foreach ($caption in $buttons) {
      if ([System.Windows.Forms.MessageBox]::Show($result + "`nOpen the release page?",'Updates','YesNo') -eq 'Yes') { Start-Process $url }
     } else { [System.Windows.Forms.MessageBox]::Show($result,'Updates') | Out-Null }
    }
-   'Start automatically when the computer starts' {
-    if ([System.Windows.Forms.MessageBox]::Show('Enable automatic startup? This changes a system setting and requires administrator permission.','Automatic startup','YesNo') -eq 'Yes') { Invoke-Control 'enable' }
+   'Run without signing in…' {
+    Invoke-Control 'enable'
    }
-   'Disable automatic startup' { Invoke-Control 'disable' }
+   'Switch back to desktop mode' { Invoke-Control 'disable' }
    'About and licence' { Show-About }
   }
  }.GetNewClosure())

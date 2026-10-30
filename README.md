@@ -4,14 +4,20 @@ A small, self-hosted, read-only banking dashboard for DayZ administrators. One e
 
 ## Install and launch
 
-Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the project's [GitHub releases](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases). These 1.4.0 packages are currently local development artifacts in `dist/`; they have not been published or validated on a Windows host.
+Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the project's [GitHub releases](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases). These 1.4.1 packages are currently local development artifacts in `dist/`; they have not been published or validated on a Windows host.
 
 - **Windows:** run the setup EXE and launch **DayZ Bank Viewer** from the Start menu. Installation requires administrator permission. The installer registers a Windows Service with manual startup by default.
-- **Debian / Ubuntu:** run `sudo apt install ./dayz-bank-viewer-1.4.0-linux-amd64.deb`, then launch **DayZ Bank Viewer** from the application menu. Apt supplies desktop dependencies. A systemd service is installed with boot startup disabled by default.
+- **Debian / Ubuntu:** run `sudo apt install ./dayz-bank-viewer-1.4.1-linux-amd64.deb`, then launch **DayZ Bank Viewer** from the application menu. Apt supplies desktop dependencies. A systemd service is installed with boot startup disabled by default.
 
-The small desktop window starts or connects to the service, opens the browser once when starting it, and displays its status and actual dashboard address. Use **Open dashboard** to open it again. Settings in the browser remain the primary interface. Add an absolute local banking directory, for example `D:/DayZ/Server1/Banking/PlayerDataBase` or `/srv/dayz/profiles/Banking/PlayerDataBase`.
+The small desktop window runs the viewer as the account that opened it. It opens the browser once when starting the viewer and displays its status and actual dashboard address. Use **Open dashboard** to open it again. Settings in the browser remain the primary interface. Add an absolute local banking directory, for example `D:/DayZ/Server1/Banking/PlayerDataBase` or `/srv/dayz/profiles/Banking/PlayerDataBase`.
 
-The desktop offers start, stop, restart, update checks, About/licence and optional **Start automatically when the computer starts**. System service changes use the platform's administrator permission prompt. Boot startup runs without a user session and never opens a browser. The service restarts after unexpected failure.
+The desktop offers start, stop, restart, update checks and About/licence. Normal desktop use runs as **you**, with your existing folder permissions and personal configuration. It does not require administrator permission or start the system service. Closing the control window leaves your viewer running until you stop it or sign out; desktop mode does not promise operation after sign-out.
+
+**Run without signing in…** is a separate, optional setup step. It explains the service account and selected folders, copies a snapshot of your settings, and checks folder/file access while running as that account. Only a successful check enables boot startup. If setup fails, previous service settings/startup preference are restored and your desktop viewer is restarted. Banking files and their permissions are never changed by setup. Administrators can grant read-only access if they need this mode.
+
+**Switch back to desktop mode** preserves current service settings, disables/stops the service and starts the viewer as you again. Service operations use the platform's administrator permission prompt. Boot startup needs no user session, never opens a browser and recovers after unexpected failure.
+
+When upgrading from 1.4.0, the first desktop launch offers **Run as me (recommended)** or **Keep the unattended service**. Choosing desktop mode copies existing settings without deleting the old service configuration, then stops/disables the old service. Switching an existing service may require administrator permission once. A fresh installation needs no service setup for normal use.
 
 Packages need no Python, Go or Node installation. Windows desktop controls use built-in Windows PowerShell and .NET Framework Windows Forms. Linux desktop controls need Zenity, xdg-utils and PolicyKit. Server Core supports the headless service rather than the desktop window. See [platform verification](docs/VERIFICATION.md) before production rollout.
 
@@ -29,21 +35,31 @@ The configured port defaults to **20784**. If occupied by another application, t
 ./dayz-bank-viewer -control updates
 ```
 
-Portable `start` detaches the service process and writes startup messages to `config.json.log`. Reconnecting does not open another browser tab. Installed copies use their registered native service. On a headless Linux machine use `sudo systemctl start|stop|restart dayz-bank-viewer`; `sudo systemctl enable|disable dayz-bank-viewer` controls boot startup. On Windows an elevated PowerShell can use `Start-Service`, `Stop-Service`, `Restart-Service` and `Set-Service DayZBankViewer -StartupType Automatic|Manual`.
+Portable `start` detaches the service process and writes startup messages to `config.json.log`. Reconnecting does not open another browser tab. Installed desktop copies use personal settings and run as the signed-in account. After explicitly selecting unattended mode, the control window uses the registered native service. On a headless Linux machine use `sudo systemctl start|stop|restart dayz-bank-viewer`; `sudo systemctl enable|disable dayz-bank-viewer` controls boot startup. On Windows an elevated PowerShell can use `Start-Service`, `Stop-Service`, `Restart-Service` and `Set-Service DayZBankViewer -StartupType Automatic|Manual`.
 
-The installed Linux service runs as the restricted `dayz-bank-viewer` user; Windows uses `NT AUTHORITY\LocalService`. Grant that identity read/traverse access to the selected banking directories using your normal filesystem permissions. It needs no write permission there. Desktop controls report unavailable paths through the existing scan warnings. Do not make banking directories writable to fix a read-permission problem.
+For headless setup, an administrator can run `sudo /usr/bin/dayz-bank-viewer -service-setup "/absolute/path/to/config.json"` on Linux. This copies that configuration, checks access as the service account and enables startup only if the check succeeds.
+
+Only the optional unattended service runs as a separate identity. The Linux service runs as the restricted `dayz-bank-viewer` user; Windows uses `NT AUTHORITY\LocalService`. Grant that identity read/traverse access to the selected banking directories using your normal filesystem permissions. It needs no write permission there. Desktop controls report unavailable paths through the existing scan warnings. Do not make banking directories writable to fix a read-permission problem.
+
+## Folder permissions
+
+In desktop mode the viewer uses the same account as the person who opens it. It can read the folders that account can read. Choose your banking folder in Settings as before; there is no extra service identity to configure.
+
+In optional unattended mode, folders must be readable by `dayz-bank-viewer` on Linux or `NT AUTHORITY\LocalService` on Windows. The setup checks each enabled folder and its existing JSON files before enabling boot startup, and identifies the account/path if access is blocked. Future files need inherited read permissions too. An administrator can use targeted ACLs or group permissions; no banking write access is needed. The setup never grants access or changes source permissions automatically.
+
+A private Linux home directory can block traversal even when the target folder is readable. If `~/Dev` is a symlink to an already accessible `/mnt/shared/Dev`, selecting the direct `/mnt/shared/Dev/.../PlayerDataBase` path can avoid that private parent. This workaround is relevant to unattended mode; normal desktop mode can use your home path directly.
 
 ## Updates and uninstall
 
 Settings shows the installed version and a **Check for updates** button. The desktop offers the same check. Only a manual check contacts GitHub; no records or folder paths are sent. Offline and rate-limit failures leave the viewer usable. A newer stable release offers a link to its official downloads. Nothing is downloaded or installed automatically.
 
-Use **Installed apps / Add or remove programs** on Windows or `sudo apt remove dayz-bank-viewer` on Linux. Removal stops and unregisters the application service and removes package-owned files and shortcuts. User configuration, logs, exports and banking sources are retained. `sudo apt purge dayz-bank-viewer` explicitly removes known application configuration/state; it retains logs, exports, unknown user files and all banking records. Windows retains `%ProgramData%\DayZ Bank Viewer` for deliberate user cleanup. Never point cleanup commands at a banking source.
+Use **Installed apps / Add or remove programs** on Windows or `sudo apt remove dayz-bank-viewer` on Linux. Removal stops and unregisters the application service and removes package-owned files and shortcuts. User configuration, logs, exports and banking sources are retained. `sudo apt purge dayz-bank-viewer` explicitly removes known application configuration/state; it retains logs, exports, unknown user files and all banking records. Windows retains `%ProgramData%\DayZ Bank Viewer` for deliberate user cleanup. Personal desktop settings under your account are retained on both platforms, including on package purge. Never point cleanup commands at a banking source.
 
 Upgrades retain configuration and boot-start preferences and restart a previously running native service. Portable users should stop their old viewer before replacing its binary.
 
 ## Configuration
 
-Portable `config.json` lives **beside the executable**, regardless of the working directory. Installed Linux copies use `/var/lib/dayz-bank-viewer/config.json`; installed Windows copies use `%ProgramData%\DayZ Bank Viewer\config.json`. Private runtime credentials and public port/status discovery sit beside the configuration; neither contains account records. On first launch it is optional; Settings creates it when saved. `config.example.json` is an empty starting point. You can also create:
+Portable `config.json` lives **beside the executable**, regardless of the working directory. Installed desktop copies use `~/.config/DayZ Bank Viewer/config.json` on Linux (or the configured `XDG_CONFIG_HOME`) and `%APPDATA%\DayZ Bank Viewer\config.json` on Windows. Optional unattended services retain `/var/lib/dayz-bank-viewer/config.json` and `%ProgramData%\DayZ Bank Viewer\config.json` respectively. Service selection is remembered per user beside personal settings. Private runtime credentials and public port/status discovery sit beside the configuration; neither contains account records. On first launch it is optional; Settings creates it when saved. `config.example.json` is an empty starting point. You can also create:
 
 ```json
 {

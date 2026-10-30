@@ -47,7 +47,7 @@ Run `python3 tools/lifecycle-smoke.py`, `python3 tools/cli-smoke.py`, and the br
 For each actual target OS, use an isolated VM with synthetic banking records and record the results:
 
 1. Install the setup EXE / DEB on a clean host without development tools. Verify menu entry, icon, installed version, licence and source links. Windows service runs as LocalService; Linux as dayz-bank-viewer.
-2. Launch from the menu. Confirm administrator prompt where needed, service readiness, actual port and browser opening. Launch again and verify one service and no extra tab. Confirm the desktop icon and status at 100%, 150% and 200% scaling and keyboard access to every control.
+2. Launch from the menu. On a fresh installation confirm the viewer runs as the signed-in user, uses personal settings, reads a private banking folder that user can read, and opens without an administrator prompt. Confirm the system service remains stopped/disabled, startup readiness, actual port and browser opening. Launch again and verify one service and no extra tab. Confirm the desktop icon and status at 100%, 150% and 200% scaling and keyboard access to every control.
 3. Occupy the preferred port; confirm actual port is within the next twenty. Occupy the whole range and confirm a clear failure. Release the ports and retry.
 4. Add synthetic records through browser Settings, granting only read access to the service account. Repeat banking acceptance. Compare source directory contents and hashes before and after.
 5. Check updates while current, with a newer stable release, offline, with a GitHub rate-limit response, and with malformed data. Confirm failures leave the dashboard usable. No updater should download or install anything automatically.
@@ -58,3 +58,12 @@ For each actual target OS, use an isolated VM with synthetic banking records and
 10. Test portable archives separately, including startup from another working directory and headless operation without display variables. Check the default localhost binding and that existing origin/Host restrictions still apply.
 
 Authentication, remote transfer and other banking formats remain outside scope. Actual platform lifecycle verification is required before describing an installer as production verified.
+
+## Desktop/unattended mode transitions (1.4.1)
+
+1. Upgrade a running 1.4.0 service with existing settings. On first desktop launch choose Run as me. Verify settings are copied to the personal directory, original service settings remain, the old service is stopped/disabled after confirmation, and the viewer reads the original private home path as the signed-in user. Relaunch and confirm no repeat migration prompt, extra runtime or browser tab.
+2. Repeat the upgrade choice selecting Keep the unattended service; then verify subsequent launches retain that choice. Cancel the upgrade choice and verify the service/settings remain unchanged.
+3. From desktop mode select Run without signing in. Verify the account/folder explanation and administrator prompt. Deny approval and confirm desktop mode stays running. With an inaccessible folder, approve setup and verify access failure identifies the service account/path, boot startup remains disabled, previous service configuration/startup preference is restored, and the desktop viewer restarts. Source data and ACLs must remain unchanged.
+4. With service-readable folders, repeat setup. Verify access succeeds under the actual service identity before startup is enabled; the desktop runtime stops and service mode is remembered. Reboot without login and verify recovery and dashboard readiness.
+5. Change Settings in service mode, then Switch back to desktop mode. Confirm current service settings are copied back, the prior personal copy is backed up, unattended startup stops/disables and the viewer restarts as the signed-in user. Test this with the service stopped as well as running.
+6. Upgrade/remove with a personal runtime and control window open. Verify only this installed application's processes close, package files are removed/replaced, personal/service settings are retained, and unrelated applications remain running. Test both platforms and multiple signed-in users.

@@ -1,5 +1,6 @@
 """Portable Linux process lifecycle, browser and port checks; synthetic data only."""
 import json
+import getpass
 import os
 from pathlib import Path
 import socket
@@ -33,6 +34,7 @@ with tempfile.TemporaryDirectory(prefix='dayz-lifecycle-') as folder:
             proc = subprocess.Popen([binary, '-config', config, '-headless'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             processes.append(proc)
             initial = state()
+            assert initial['identity'] == getpass.getuser(), initial['identity']
             assert port < int(initial['url'].rsplit(':',1)[1]) <= port + 20
             assert 'token' not in initial or not initial['token']
             duplicate = subprocess.run([binary, '-config', config, '-headless'], capture_output=True, text=True, timeout=5)
@@ -50,6 +52,7 @@ with tempfile.TemporaryDirectory(prefix='dayz-lifecycle-') as folder:
         marker = root / 'browser-opens'
         (bin_dir / 'xdg-open').write_text('#!/bin/sh\nprintf "%s\\n" "$1" >> "$BROWSER_MARKER"\n')
         (bin_dir / 'zenity').write_text('#!/bin/sh\nexit 1\n')
+        (bin_dir / 'pkexec').write_text('#!/bin/sh\necho unexpected-elevation >> "$BROWSER_MARKER"\nexit 1\n')
         for tool in bin_dir.iterdir():
             tool.chmod(0o755)
         env = dict(os.environ, PATH=str(bin_dir)+':'+os.environ['PATH'], BROWSER_MARKER=str(marker))

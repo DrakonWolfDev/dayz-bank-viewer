@@ -11,16 +11,18 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"time"
 )
 
 type instance struct {
-	URL     string `json:"url"`
-	Control string `json:"control"`
-	Token   string `json:"token"`
-	Version string `json:"version"`
+	URL      string `json:"url"`
+	Control  string `json:"control"`
+	Token    string `json:"token"`
+	Version  string `json:"version"`
+	Identity string `json:"identity"`
 }
 
 func bindAvailable(address string) (net.Listener, error) {
@@ -87,7 +89,7 @@ func instanceRequest(state instance, method, path string) ([]byte, error) {
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("control returned HTTP %d", res.StatusCode)
 	}
-	return io.ReadAll(io.LimitReader(res.Body, 4096))
+	return io.ReadAll(io.LimitReader(res.Body, 1<<20))
 }
 func publishInstance(config, dashboard string, stop context.CancelFunc) (func(), error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -95,7 +97,18 @@ func publishInstance(config, dashboard string, stop context.CancelFunc) (func(),
 		return nil, err
 	}
 	state := instance{URL: dashboard, Control: "http://" + listener.Addr().String(), Token: newID() + newID(), Version: version}
+	if current, e := user.Current(); e == nil {
+		state.Identity = current.Username
+	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /access", func(w http.ResponseWriter, r *http.Request) {
+		c, err := loadConfig(config)
+		if err != nil {
+			apiError(w, 500, "could not read service settings")
+			return
+		}
+		writeJSON(w, 200, checkBankingAccess(r.Context(), c))
+	})
 	mux.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
 		public := state
 		public.Token = ""
@@ -112,7 +125,7 @@ func publishInstance(config, dashboard string, stop context.CancelFunc) (func(),
 		go stop()
 	})
 	srv := &http.Server{ReadHeaderTimeout: 3 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second, IdleTimeout: 5 * time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.Path == "/status" {
+		if r.Method == "GET" && (r.URL.Path == "/status" || r.URL.Path == "/access") {
 			mux.ServeHTTP(w, r)
 			return
 		}
@@ -165,6 +178,19 @@ func publishInstance(config, dashboard string, stop context.CancelFunc) (func(),
 	return func() { srv.Close(); os.Remove(config + ".runtime"); os.Remove(config + ".status") }, nil
 }
 func ensureRunning(config string) (instance, bool, error) {
+	if !managedInstall(config) {
+		if _, err := loadConfig(config); err != nil {
+			return instance{}, false, err
+		}
+		unlock, err := waitDesktopModeLock(config)
+		if err != nil {
+			return instance{}, false, err
+		}
+		defer unlock()
+		if selected := effectiveConfig(config); selected != config {
+			return ensureRunning(selected)
+		}
+	}
 	if state, err := readInstance(config); err == nil {
 		return state, false, nil
 	}

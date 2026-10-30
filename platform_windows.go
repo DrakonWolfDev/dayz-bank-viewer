@@ -50,11 +50,25 @@ func runWindowsDesktop(config string) error {
 	exe, _ := os.Executable()
 	return powershell(windowsDesktop, []string{"VIEWER_EXE=" + exe, "VIEWER_CONFIG=" + config, "VIEWER_VERSION=" + version, fmt.Sprint("VIEWER_PARENT_PID=", os.Getpid())})
 }
-func nativeService(action string) error {
-	commands := map[string]string{"start": "Start-Service DayZBankViewer", "stop": "Stop-Service DayZBankViewer", "restart": "Restart-Service DayZBankViewer", "enable": "Set-Service DayZBankViewer -StartupType Automatic", "disable": "Set-Service DayZBankViewer -StartupType Manual"}
+func serviceCommand(action string) (string, error) {
+	commands := map[string]string{"start": "Start-Service DayZBankViewer", "stop": "Stop-Service DayZBankViewer", "restart": "Restart-Service DayZBankViewer", "enable": "Set-Service DayZBankViewer -StartupType Automatic", "disable": "Set-Service DayZBankViewer -StartupType Manual", "desktop": "Set-Service DayZBankViewer -StartupType Manual; Stop-Service DayZBankViewer"}
 	command, ok := commands[action]
 	if !ok {
-		return fmt.Errorf("unknown service action")
+		return "", fmt.Errorf("unknown service action")
+	}
+	return command, nil
+}
+func nativeServiceDirect(action string) error {
+	command, err := serviceCommand(action)
+	if err != nil {
+		return err
+	}
+	return powershell("$ErrorActionPreference='Stop'; "+command, nil)
+}
+func nativeService(action string) error {
+	command, err := serviceCommand(action)
+	if err != nil {
+		return err
 	}
 	// Native UAC prompt; no credentials or commands interpolated from external input.
 	script := encodedPowerShell("$ErrorActionPreference='Stop'; " + command)
@@ -128,4 +142,40 @@ func secureRuntime(path string) error {
 }
 func nativeError(message string) {
 	powershell("Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show($env:VIEWER_ERROR,'DayZ Bank Viewer') | Out-Null", []string{"VIEWER_ERROR=" + message})
+}
+
+func nativeServiceEnabled() bool {
+	return powershell("$s=Get-Service DayZBankViewer -ErrorAction SilentlyContinue; if(!$s -or $s.StartType -ne 'Automatic'){exit 1}", nil) == nil
+}
+func serviceAdministrator() bool {
+	ok, _, _ := syscall.NewLazyDLL("shell32.dll").NewProc("IsUserAnAdmin").Call()
+	return ok != 0
+}
+func ownServiceConfig(path string) error {
+	output, err := exec.Command("icacls.exe", path, "/inheritance:r", "/grant:r", "*S-1-5-19:M", "*S-1-5-18:F", "*S-1-5-32-544:F").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("could not grant service access to its settings: %w: %s", err, output)
+	}
+	return nil
+}
+func setupNativeService(request string) error {
+	exe, _ := os.Executable()
+	return powershell(`$ErrorActionPreference='Stop'; $setupArguments='-service-setup "'+$env:VIEWER_REQUEST+'"'; $p=Start-Process -FilePath $env:VIEWER_EXE -ArgumentList $setupArguments -Verb RunAs -Wait -PassThru; if($p.ExitCode -ne 0){throw 'Unattended startup was not enabled. Desktop mode remains available.'}`, []string{"VIEWER_REQUEST=" + request, "VIEWER_EXE=" + exe})
+}
+func confirmServiceSetup(text string) bool {
+	return powershell(`Add-Type -AssemblyName System.Windows.Forms; if([System.Windows.Forms.MessageBox]::Show($env:VIEWER_SETUP_TEXT,'Unattended startup','YesNo') -ne 'Yes'){exit 1}`, []string{"VIEWER_SETUP_TEXT=" + text}) == nil
+}
+func choosePreviousMode() (string, error) {
+	err := powershell(`Add-Type -AssemblyName System.Windows.Forms; $choice=[System.Windows.Forms.MessageBox]::Show('Your previous build used a system service. Choose Yes to run as you (recommended), using your existing settings. This stops unattended startup and may request administrator permission. Choose No to keep the unattended service, or Cancel to leave everything unchanged.','Choose how to run','YesNoCancel'); if($choice -eq 'No'){exit 10}; if($choice -eq 'Cancel'){exit 20}`, nil)
+	if err == nil {
+		return "desktop", nil
+	}
+	if e, ok := err.(*exec.ExitError); ok && e.ExitCode() == 10 {
+		return "service", nil
+	}
+	return "", fmt.Errorf("desktop launch cancelled")
+}
+func prepareDialog(cmd *exec.Cmd) {}
+func stopPackagedProcesses() error {
+	return fmt.Errorf("use the Windows installer to stop installed viewer processes")
 }

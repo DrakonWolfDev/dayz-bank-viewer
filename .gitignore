@@ -22,3 +22,8 @@ Thumbs.db
 /config.json.lock
 /.viewer-runtime-*
 /config.json.launch.lock
+
+/config.json.mode.lock
+/config.json.service-mode
+/config.json.desktop-mode
+/.unattended-*.json

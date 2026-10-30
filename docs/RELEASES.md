@@ -1,6 +1,6 @@
 # V1.1–V1.4 changes
 
-The final development version is 1.4.0. Nothing has been published to GitHub or deployed to the Wolf Forge website as part of this work.
+The current local development version is 1.4.1. Nothing has been published to GitHub or deployed to the Wolf Forge website as part of this work.
 
 ## V1.1 — Identity and copy
 
@@ -21,3 +21,9 @@ NSIS Windows installer, Debian package, separate native service/desktop entry po
 Windows uses Windows PowerShell and .NET Framework Windows Forms supplied with supported Windows desktop installations. Linux desktop controls use distribution-provided Zenity, xdg-utils and PolicyKit; the service needs no graphical session. The Go executable itself has no third-party Go module dependencies. Linux package dependencies are installed by apt. The Windows desktop does not support Server Core without its graphical components; the service remains usable headlessly.
 
 The application is AGPL-3.0-only, matching Wolf Launcher. Include corresponding source for the exact binary revision before any public release. Packages include the licence and Go notices. Builds are unsigned; signing and real platform acceptance remain release tasks.
+
+## V1.4.1 — Desktop use without service permissions
+
+Installed desktop launches now use the signed-in account and a personal configuration directory. They never implicitly start the restricted system service. A one-time upgrade choice preserves 1.4.0 settings and lets users switch to desktop mode or keep the existing service. Unattended startup is an explicit, guided option: snapshot settings, run folder/file access checks as the actual service identity, then enable boot startup only on success. Failed setup restores previous service configuration/startup preference and restarts the desktop viewer. Switching back imports current service settings and stops/disables unattended operation. Banking source contents and permissions remain unchanged.
+
+Normal desktop startup, stop/restart, browser launch and status use the signed-in user's process. Native service controls remain available only for the selected unattended configuration. Package removal/upgrade also stops personal instances loaded from the installed executable. Windows runtime and real system-service lifecycle acceptance remain required before production distribution.

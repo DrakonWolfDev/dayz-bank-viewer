@@ -9,3 +9,8 @@ if [ -d /run/systemd/system ]; then
  fi
  if [ "$1" = remove ]; then systemctl disable dayz-bank-viewer.service; fi
 fi
+
+if [ "$1" = remove ] || [ "$1" = upgrade ] || [ "$1" = deconfigure ]; then
+ # Desktop instances run as their owners; stop only processes loaded from our installed executable.
+ /usr/bin/dayz-bank-viewer -package-stop
+fi

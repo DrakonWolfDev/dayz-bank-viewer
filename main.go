@@ -27,6 +27,8 @@ func run() error {
 	listen := flag.String("listen", "", "override the configured host:port for this run")
 	desktop := flag.Bool("desktop", false, "open the small desktop control window")
 	headless := flag.Bool("headless", false, "run without a desktop or browser")
+	packageStop := flag.Bool("package-stop", false, "stop this installed application during package removal or upgrade")
+	serviceSetup := flag.String("service-setup", "", "prepare and verify optional unattended service (administrator only)")
 	service := flag.Bool("service", false, "run under the native service manager")
 	action := flag.String("control", "", "status, start, stop, restart, updates, enable or disable")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -34,6 +36,24 @@ func run() error {
 	if *showVersion {
 		fmt.Println("DayZ Bank Viewer", version)
 		return nil
+	}
+	if *packageStop {
+		return stopPackagedProcesses()
+	}
+	if *serviceSetup != "" {
+		return configureUnattended(*serviceSetup)
+	}
+	explicitConfig := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			explicitConfig = true
+		}
+	})
+	if *service && !explicitConfig {
+		*configPath = systemConfigPath()
+	}
+	if *configPath == "" {
+		return errors.New("could not locate your configuration folder")
 	}
 	abs, err := filepath.Abs(*configPath)
 	if err != nil {
@@ -140,7 +160,7 @@ func main() {
 		log.Print(strings.TrimSpace(err.Error()))
 		interactive := len(os.Args) == 1
 		for _, arg := range os.Args[1:] {
-			if arg == "-desktop" {
+			if arg == "-desktop" || (arg == "-service-setup" && runtime.GOOS == "windows") {
 				interactive = true
 			}
 		}

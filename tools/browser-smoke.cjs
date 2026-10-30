@@ -33,7 +33,7 @@ async function main() {
     assert.equal(await page.getByRole('link', { name: 'A Wolf Forge Project' }).getAttribute('href'), 'https://wolf-forge.co.uk/');
     await page.getByRole('heading', { name: 'Connect your first server' }).waitFor();
     await page.getByRole('button', { name: 'Add a server', exact: true }).click();
-    await page.locator('#settings .version').filter({ hasText: 'v1.4.0' }).waitFor();
+    await page.locator('#settings .version').filter({ hasText: 'v' + (await fs.readFile('VERSION', 'utf8')).trim() }).waitFor();
     for (const result of [{status:'current',message:'You are up to date.'},{status:'available',message:'Version 1.5.0 is available.',url:'https://github.com/DrakonWolfDev/dayz-bank-viewer/releases/tag/v1.5.0'},{status:'failed',message:'Could not reach GitHub.'}]) {
       await page.route('**/api/updates', route => route.fulfill({json:result}));
       await page.getByRole('button', {name:'Check for updates',exact:true}).click();
