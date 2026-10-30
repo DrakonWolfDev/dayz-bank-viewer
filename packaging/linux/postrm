@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+if [ -d /run/systemd/system ]; then systemctl daemon-reload; fi
+if [ "$1" = purge ]; then
+ # Deliberate package-manager purge removes only known app configuration/state.
+ # Logs, exports, unknown user files, and all banking sources are retained.
+ rm -f /var/lib/dayz-bank-viewer/config.json /var/lib/dayz-bank-viewer/config.json.runtime /var/lib/dayz-bank-viewer/config.json.status /var/lib/dayz-bank-viewer/config.json.lock /var/lib/dayz-bank-viewer/config.json.launch.lock /var/lib/dayz-bank-viewer/.restart-on-upgrade
+ rmdir /var/lib/dayz-bank-viewer 2>/dev/null || true
+fi

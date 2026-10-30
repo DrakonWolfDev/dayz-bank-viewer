@@ -16,3 +16,9 @@
 coverage.out
 .DS_Store
 Thumbs.db
+
+/config.json.runtime
+/config.json.status
+/config.json.lock
+/.viewer-runtime-*
+/config.json.launch.lock

@@ -2,30 +2,48 @@
 
 A small, self-hosted, read-only banking dashboard for DayZ administrators. One executable serves the dashboard and reads locally accessible banking directories. No database, Node.js runtime, external services, fonts, analytics or internet connection is needed to run it.
 
-## Start on Windows Server
+## Install and launch
 
-1. Extract the Windows x64 ZIP into a writable application folder, away from your DayZ banking directories.
-2. Run `dayz-bank-viewer.exe`. Keep its console open while using the app.
-3. Open **http://127.0.0.1:20784** in your browser.
-4. Open **Settings**, choose **Add server**, and enter a name and the absolute path to the folder containing the player JSON files, for example `D:/DayZ/Server1/Banking/PlayerDataBase`.
-5. Save settings. The app scans enabled servers and displays their accounts.
+Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the project's [GitHub releases](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases). These 1.4.0 packages are currently local development artifacts in `dist/`; they have not been published or validated on a Windows host.
 
-Removing a server in Settings removes only its configuration. Original banking files are never edited or deleted. The viewer needs read access to those folders and write access only to its own configuration directory.
+- **Windows:** run the setup EXE and launch **DayZ Bank Viewer** from the Start menu. Installation requires administrator permission. The installer registers a Windows Service with manual startup by default.
+- **Debian / Ubuntu:** run `sudo apt install ./dayz-bank-viewer-1.4.0-linux-amd64.deb`, then launch **DayZ Bank Viewer** from the application menu. Apt supplies desktop dependencies. A systemd service is installed with boot startup disabled by default.
 
-## Start on Debian / Ubuntu
+The small desktop window starts or connects to the service, opens the browser once when starting it, and displays its status and actual dashboard address. Use **Open dashboard** to open it again. Settings in the browser remain the primary interface. Add an absolute local banking directory, for example `D:/DayZ/Server1/Banking/PlayerDataBase` or `/srv/dayz/profiles/Banking/PlayerDataBase`.
 
-Extract the Linux x64 archive into a writable application folder, then:
+The desktop offers start, stop, restart, update checks, About/licence and optional **Start automatically when the computer starts**. System service changes use the platform's administrator permission prompt. Boot startup runs without a user session and never opens a browser. The service restarts after unexpected failure.
+
+Packages need no Python, Go or Node installation. Windows desktop controls use built-in Windows PowerShell and .NET Framework Windows Forms. Linux desktop controls need Zenity, xdg-utils and PolicyKit. Server Core supports the headless service rather than the desktop window. See [platform verification](docs/VERIFICATION.md) before production rollout.
+
+## Portable and headless operation
+
+The ZIP and tar.gz remain available. Extract into a writable application folder, away from banking directories. Run `dayz-bank-viewer -desktop` for the control window, or `dayz-bank-viewer -headless` for a foreground process (Ctrl+C stops it). On Linux make the executable executable first. On Windows append `.exe`.
+
+The configured port defaults to **20784**. If occupied by another application, the viewer binds the next available port, trying at most twenty additional ports. The log, desktop status and discovery file report the actual address. Instances using the same canonical configuration cannot run twice. Separate configurations intentionally support separate viewers.
 
 ```sh
-chmod +x dayz-bank-viewer
-./dayz-bank-viewer
+./dayz-bank-viewer -config /absolute/path/config.json -control status
+./dayz-bank-viewer -config /absolute/path/config.json -control start
+./dayz-bank-viewer -config /absolute/path/config.json -control restart
+./dayz-bank-viewer -config /absolute/path/config.json -control stop
+./dayz-bank-viewer -control updates
 ```
 
-Visit the same address and add an absolute directory such as `/srv/dayz/profiles/Banking/PlayerDataBase`. Stop the app using Ctrl+C. Run it independently of DayZ; no server mod or restart is required.
+Portable `start` detaches the service process and writes startup messages to `config.json.log`. Reconnecting does not open another browser tab. Installed copies use their registered native service. On a headless Linux machine use `sudo systemctl start|stop|restart dayz-bank-viewer`; `sudo systemctl enable|disable dayz-bank-viewer` controls boot startup. On Windows an elevated PowerShell can use `Start-Service`, `Stop-Service`, `Restart-Service` and `Set-Service DayZBankViewer -StartupType Automatic|Manual`.
+
+The installed Linux service runs as the restricted `dayz-bank-viewer` user; Windows uses `NT AUTHORITY\LocalService`. Grant that identity read/traverse access to the selected banking directories using your normal filesystem permissions. It needs no write permission there. Desktop controls report unavailable paths through the existing scan warnings. Do not make banking directories writable to fix a read-permission problem.
+
+## Updates and uninstall
+
+Settings shows the installed version and a **Check for updates** button. The desktop offers the same check. Only a manual check contacts GitHub; no records or folder paths are sent. Offline and rate-limit failures leave the viewer usable. A newer stable release offers a link to its official downloads. Nothing is downloaded or installed automatically.
+
+Use **Installed apps / Add or remove programs** on Windows or `sudo apt remove dayz-bank-viewer` on Linux. Removal stops and unregisters the application service and removes package-owned files and shortcuts. User configuration, logs, exports and banking sources are retained. `sudo apt purge dayz-bank-viewer` explicitly removes known application configuration/state; it retains logs, exports, unknown user files and all banking records. Windows retains `%ProgramData%\DayZ Bank Viewer` for deliberate user cleanup. Never point cleanup commands at a banking source.
+
+Upgrades retain configuration and boot-start preferences and restart a previously running native service. Portable users should stop their old viewer before replacing its binary.
 
 ## Configuration
 
-The default `config.json` lives **beside the executable**, regardless of the working directory. On first launch it is optional; Settings creates it when saved. `config.example.json` is an empty starting point. You can also create:
+Portable `config.json` lives **beside the executable**, regardless of the working directory. Installed Linux copies use `/var/lib/dayz-bank-viewer/config.json`; installed Windows copies use `%ProgramData%\DayZ Bank Viewer\config.json`. Private runtime credentials and public port/status discovery sit beside the configuration; neither contains account records. On first launch it is optional; Settings creates it when saved. `config.example.json` is an empty starting point. You can also create:
 
 ```json
 {
@@ -49,7 +67,7 @@ dayz-bank-viewer -listen 127.0.0.1:20785
 dayz-bank-viewer -version
 ```
 
-On Windows, use `./dayz-bank-viewer.exe` in PowerShell. `-listen` overrides the address for that run only. A port conflict produces an explanatory error and exits. Keep configuration outside banking folders; saves use a temporary file and replacement, and a failed save leaves the active configuration unchanged.
+On Windows, use `./dayz-bank-viewer.exe` in PowerShell. `-listen` overrides the address for that run only. An occupied port triggers bounded automatic fallback; exhaustion produces a clear error. Keep configuration outside banking folders; saves use a temporary file and replacement, and a failed save leaves the active configuration unchanged.
 
 The default binding accepts access from this machine only. There is **no built-in login or TLS**. If you intentionally bind to a LAN address or `0.0.0.0`, restrict access to trusted administrators with a firewall or authenticated reverse proxy. Do not expose the unauthenticated interface directly to the internet. A reverse proxy must preserve the public `Host` and `Origin` and connect to a listener configured for that use. Cross-origin browser requests are rejected; no CORS access is provided.
 
@@ -81,12 +99,15 @@ Go **1.22 or newer** is the only build requirement. All application dependencies
 go test -race ./...
 go vet ./...
 go build -buildvcs=false -trimpath -o build/dayz-bank-viewer .
+go run ./tools/icon
 go run ./tools/package
 ```
 
 If your environment restricts the normal Go cache, set `GOCACHE` to a writable absolute directory. On Windows, use `go build -buildvcs=false -o build/dayz-bank-viewer.exe .`. For development, `go run . -config ./config.json` avoids putting settings next to Go's temporary executable.
 
-The package command builds Windows x64 and Linux x64 with CGO disabled, embeds the web assets and timezone database, and writes both archives plus `SHA256SUMS` into `dist/`. Unpacked executables are in `dist/windows-amd64/` and `dist/linux-amd64/`. Archives contain only the executable, this README, example configuration, VERSION and the acceptance checklist. `VERSION` is the application/build version source.
+Building the DEB and setup EXE also requires `dpkg-deb` and NSIS `makensis` on the build machine (not on users' machines). Set `MAKENSIS` to an alternate executable path and `NSISDIR` if using an extracted NSIS toolchain.
+
+The package command builds Windows x64 and Linux x64 with CGO disabled, embeds the web assets and timezone database, and writes both archives, the DEB, the setup EXE and `SHA256SUMS` into `dist/`. Unpacked executables are in `dist/windows-amd64/` and `dist/linux-amd64/`. Archives use an explicit allowlist covering the executable, README, example configuration, VERSION, acceptance checklist, application icon, licence and Go notices. `VERSION` is the application/build version source.
 
 Cross-compiling a Windows executable does not establish that it has been run on Windows Server. Perform the Windows acceptance steps in [docs/TESTING.md](docs/TESTING.md) before production rollout.
 
@@ -108,6 +129,8 @@ All responses are uncached. There are no file-download or arbitrary file-reading
 
 | Request | Behaviour |
 | --- | --- |
+| `GET /api/version` | Installed application version |
+| `POST /api/updates` | Manual stable GitHub release check; no installation |
 | `GET /api/dashboard` | Cached enabled-server accounts, exact summaries, per-server scan metadata and issues |
 | `GET /api/dashboard?server=ID` | Cached accounts for one server, including a disabled server |
 | `GET /api/config` | Current persisted configuration, including local paths |
@@ -115,3 +138,9 @@ All responses are uncached. There are no file-download or arbitrary file-reading
 | `POST /api/refresh` | Queue enabled servers; `{}` for all or `{"server_id":"ID"}` for one; returns 202 and a started count |
 
 Dashboard polling reads memory; it never initiates file scans. A refresh of a disabled or already scanning server starts zero new scans. The dashboard shows cached data while scanning and polls less often when idle or pauses polling in a hidden tab.
+
+## Licence and source
+
+[GNU Affero General Public License v3 only](LICENSE) (`AGPL-3.0-only`), matching Wolf Launcher. [Licence and third-party information](LICENSING.md). [Version boundaries](docs/RELEASES.md).
+
+[A Wolf Forge Project 🐾](https://wolf-forge.co.uk/)

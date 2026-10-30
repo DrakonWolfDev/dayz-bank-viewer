@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DayZ Bank Viewer
+Comment=Your players. Their balances. Private by design.
+Exec=/usr/bin/dayz-bank-viewer -desktop
+Icon=dayz-bank-viewer
+Terminal=false
+Categories=Utility;

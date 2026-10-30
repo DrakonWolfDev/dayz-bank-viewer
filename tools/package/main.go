@@ -43,7 +43,11 @@ func release() error {
 		if platform == "windows" {
 			binary += ".exe"
 		}
-		cmd := exec.Command("go", "build", "-buildvcs=false", "-trimpath", "-ldflags=-s -w", "-o", filepath.Join(stage, binary), ".")
+		flags := "-s -w"
+		if platform == "windows" {
+			flags += " -H=windowsgui"
+		}
+		cmd := exec.Command("go", "build", "-buildvcs=false", "-trimpath", "-ldflags="+flags, "-o", filepath.Join(stage, binary), ".")
 		for _, v := range os.Environ() {
 			if !strings.HasPrefix(v, "GOOS=") && !strings.HasPrefix(v, "GOARCH=") && !strings.HasPrefix(v, "CGO_ENABLED=") {
 				cmd.Env = append(cmd.Env, v)
@@ -55,8 +59,20 @@ func release() error {
 		if err := cmd.Run(); err != nil {
 			return err
 		}
-		files := []string{binary, "README.md", "config.example.json", "VERSION", "docs/TESTING.md"}
+		for _, notice := range []string{"LICENSE", "PATENTS"} {
+			data, err := os.ReadFile(filepath.Join("notices", "GO-"+notice))
+			if err != nil {
+				return err
+			}
+			if err = os.WriteFile(filepath.Join(stage, "GO-"+notice), data, 0644); err != nil {
+				return err
+			}
+		}
+		files := []string{binary, "README.md", "config.example.json", "VERSION", "docs/TESTING.md", "LICENSING.md", "LICENSE", "web/app.ico", "GO-LICENSE", "GO-PATENTS"}
 		for _, name := range files[1:] {
+			if strings.HasPrefix(name, "GO-") {
+				continue
+			}
 			data, err := os.ReadFile(name)
 			if err != nil {
 				return err
@@ -88,6 +104,18 @@ func release() error {
 		}
 		fmt.Fprintf(&sums, "%x  %s\n", hash.Sum(nil), name)
 		fmt.Println("Built", out)
+	}
+	for _, kind := range []string{"deb", "exe"} {
+		name, err := installer(version, kind)
+		if err != nil {
+			return err
+		}
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(&sums, "%x  %s\n", sha256.Sum256(data), filepath.Base(name))
+		fmt.Println("Built", name)
 	}
 	return os.WriteFile(filepath.Join("dist", "SHA256SUMS"), []byte(sums.String()), 0644)
 }

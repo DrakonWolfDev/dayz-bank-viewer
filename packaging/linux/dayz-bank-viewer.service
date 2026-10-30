@@ -1,0 +1,22 @@
+[Unit]
+Description=DayZ Bank Viewer
+After=network.target
+
+[Service]
+Type=simple
+User=dayz-bank-viewer
+Group=dayz-bank-viewer
+WorkingDirectory=/var/lib/dayz-bank-viewer
+ExecStart=/usr/bin/dayz-bank-viewer -service -config /var/lib/dayz-bank-viewer/config.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/dayz-bank-viewer
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

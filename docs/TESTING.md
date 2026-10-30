@@ -37,7 +37,24 @@ The Linux environment can cross-compile the Windows PE executable, but Windows r
 2. Add a banking path containing spaces. Save settings twice to verify replacement of an existing config on the target filesystem.
 3. Test unreadable/temporarily locked account files, a missing directory and recovery after it returns.
 4. Repeat the browser acceptance flow, including host-local schedules, and verify file hashes.
-5. Launch a second instance on the same port and check the clear port-conflict error. Start with a different `-listen` port.
+5. Launch a second instance with the same configuration and check the ownership error. Occupy the configured port with a different application and verify fallback to one of the next twenty ports.
 6. Stop with Ctrl+C and restart from a different working directory. Confirm the configuration beside the executable is still used.
 
-Production installation as an OS service, authentication, remote transfer and other banking formats are outside the supplied v1 brief.
+## V1.1–V1.4 acceptance
+
+Run `python3 tools/lifecycle-smoke.py`, `python3 tools/cli-smoke.py`, and the browser smoke after packaging. The lifecycle script stubs native desktop tools so it can verify browser-launch policy without opening real windows; it does not validate native widgets or installer execution.
+
+For each actual target OS, use an isolated VM with synthetic banking records and record the results:
+
+1. Install the setup EXE / DEB on a clean host without development tools. Verify menu entry, icon, installed version, licence and source links. Windows service runs as LocalService; Linux as dayz-bank-viewer.
+2. Launch from the menu. Confirm administrator prompt where needed, service readiness, actual port and browser opening. Launch again and verify one service and no extra tab. Confirm the desktop icon and status at 100%, 150% and 200% scaling and keyboard access to every control.
+3. Occupy the preferred port; confirm actual port is within the next twenty. Occupy the whole range and confirm a clear failure. Release the ports and retry.
+4. Add synthetic records through browser Settings, granting only read access to the service account. Repeat banking acceptance. Compare source directory contents and hashes before and after.
+5. Check updates while current, with a newer stable release, offline, with a GitHub rate-limit response, and with malformed data. Confirm failures leave the dashboard usable. No updater should download or install anything automatically.
+6. Stop and restart from the desktop; confirm unrelated processes remain. Enable boot startup, reboot without logging in, and verify the dashboard is reachable from localhost and recovers after terminating only its own service process. No browser should open at boot. Disable startup, reboot and confirm it stays stopped.
+7. Upgrade while running, then while stopped. Configuration and boot preference must survive; a previously running native service must restart. Test paths containing spaces.
+8. Uninstall with the control window open. Verify the service is stopped, disabled and removed, application files/menu entries are removed, and no app processes remain. Configuration, logs, exported reports and source hashes must survive.
+9. On Linux test ordinary removal, reinstall with retained settings, and explicit purge. Purge may remove only known configuration/runtime files. Banking sources, logs, exports and unknown user files must survive. On Windows inspect retained ProgramData and normal uninstall registration cleanup.
+10. Test portable archives separately, including startup from another working directory and headless operation without display variables. Check the default localhost binding and that existing origin/Host restrictions still apply.
+
+Authentication, remote transfer and other banking formats remain outside scope. Actual platform lifecycle verification is required before describing an installer as production verified.

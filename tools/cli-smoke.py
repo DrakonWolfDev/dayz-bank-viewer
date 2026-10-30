@@ -9,7 +9,8 @@ import urllib.request
 
 
 def main():
-    archive = next(pathlib.Path("dist").glob("*-linux-amd64.tar.gz"))
+    version = pathlib.Path("VERSION").read_text().strip()
+    archive = pathlib.Path(f"dist/dayz-bank-viewer-{version}-linux-amd64.tar.gz")
     with tempfile.TemporaryDirectory(prefix="dayz-cli-check-") as temp:
         root = pathlib.Path(temp)
         with tarfile.open(archive) as package:
@@ -18,7 +19,7 @@ def main():
         binary = folder / "dayz-bank-viewer"
         elsewhere = root / "different working directory"
         elsewhere.mkdir()
-        assert subprocess.check_output([binary, "-version"], text=True).strip() == "DayZ Bank Viewer 1.0.0"
+        assert subprocess.check_output([binary, "-version"], text=True).strip() == "DayZ Bank Viewer " + version
         process = subprocess.Popen(
             [binary, "-listen", "127.0.0.1:0"], cwd=elsewhere,
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
@@ -44,7 +45,7 @@ def main():
                 capture_output=True, text=True, timeout=5,
             )
             assert conflict.returncode == 1
-            assert "Another application may be using this port" in conflict.stderr
+            assert "already running" in conflict.stderr
         finally:
             process.terminate()
             process.wait(timeout=5)

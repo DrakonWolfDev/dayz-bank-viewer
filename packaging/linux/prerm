@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+if [ -d /run/systemd/system ]; then
+ if [ "$1" = upgrade ] && systemctl is-active --quiet dayz-bank-viewer.service; then
+  touch /var/lib/dayz-bank-viewer/.restart-on-upgrade
+ fi
+ if [ "$1" = remove ] || [ "$1" = upgrade ] || [ "$1" = deconfigure ]; then
+  systemctl stop dayz-bank-viewer.service
+ fi
+ if [ "$1" = remove ]; then systemctl disable dayz-bank-viewer.service; fi
+fi

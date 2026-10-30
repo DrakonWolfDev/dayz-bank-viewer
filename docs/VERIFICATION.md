@@ -1,23 +1,26 @@
-# v1.0.0 verification — 30 October 2026
+# V1.4.0 verification — 30 October 2026
 
-Implemented against the supplied `Brief`, which ends at searching by player name or Steam64 ID.
+Implemented against `Brief1.1-1.4`. Version boundaries are recorded in [RELEASES.md](RELEASES.md). These are development packages, with no GitHub publication or website deployment.
 
-## Passed in this development environment
+## Verified in this environment
 
-- `go test -race -cover ./...`: application tests passed with the race detector; root package statement coverage was 79.1%. The release utility is exercised by archive and extracted-binary checks rather than unit coverage.
-- `go vet ./...`: no findings.
-- JavaScript syntax checks for the dashboard and browser smoke tool.
-- Opt-in private corpus scan: 1,050 accounts read without skips. An independent calculation matched the summary; every source SHA-256 hash and the directory entry count remained unchanged. No account identities, balances or contents were added to source fixtures or screenshots.
-- Chrome smoke checks: empty-state onboarding, adding and persisting two server configurations, exact large balances, unique-player counts, search, sorting, pagination, player details, escaped player text, partial scans, complete failures with retained results, recovery, disabled servers, renaming and removing configurations without deleting source files.
-- Desktop (1440 px), tablet (820 px), and mobile (390 px) browser checks. Screenshots containing synthetic data are under ignored `artifacts/`. Large totals remain readable. The browser recorded no page errors or external requests.
-- Extracted Linux archive smoke checks: standalone embedded assets, version output, settings persistence beside the executable despite a different working directory, understandable port-conflict errors, graceful shutdown, and refusal to use a player JSON file as configuration.
-- Linux x64 ELF and Windows x64 PE builds, both with CGO disabled. Both release archive SHA-256 hashes verified. Archive members checked against the explicit five-file allowlist: executable, README, VERSION, example config and acceptance checklist.
-- Git ignore patterns checked in an isolated temporary repository for corpus records, local configuration, screenshots and distribution files. The workspace's provided `.git` directory is an empty read-only placeholder, not an initialised repository. Nothing was committed, pushed or published.
+- Go tests pass with the race detector. Coverage includes the original banking tests and new update/control checks. Desktop/SCM wrappers are platform acceptance work, so overall statement coverage is not a measure of Windows verification.
+- `go vet ./...` passes for Linux and Windows x64. Both binaries cross-compile without CGO. JavaScript and Debian maintainer-script syntax checks pass.
+- Update tests cover numeric version comparison, older/current/newer releases, drafts, prereleases, malformed tags/JSON, missing releases, rate limits, oversized payloads, timeout and redirect refusal. Requests use synthetic local HTTP servers, not the live GitHub release state.
+- Runtime tests cover socket fallback and continued ownership, duplicate lock refusal and release, authenticated stop, public discovery without credentials, stale state and refusal to send credentials to an external control address.
+- Process lifecycle smoke passes with temporary configurations: occupied preferred port, duplicate refusal, reconnect, restart, stop, startup readiness, simultaneous desktop launches producing one browser open, subsequent reconnect producing no extra tab, and retained configuration. Browser launch is stubbed for this test.
+- Chrome smoke passes: branding and footer link, installed version, update result/link states with intercepted responses, onboarding, two servers, exact large balances, search/sort/pagination, player details, partial/failed scan recovery, disabling/renaming/removing configurations, unchanged synthetic source files, and desktop/tablet/mobile layouts. No unexpected external requests or page errors.
+- Native Linux Zenity control opens on an isolated Xvfb display with version, status, port, URL and action list, and closes with Escape. The portable service then stops cleanly. This is an actual widget smoke test; boot services, PolicyKit approval and every GUI action are not covered by it. Screenshot: ignored `artifacts/linux-control.png`.
+- Extracted Linux release smoke passes: assets, version, configuration persistence/location from another working directory, duplicate refusal, graceful shutdown and refusal to overwrite a player file passed as configuration.
+- NSIS 3.09 builds the Windows setup EXE without compiler warnings. `dpkg-deb` builds the Linux package. Package inspection checks archive allowlists, licences/notices, Debian script syntax/executable modes, restricted systemd identity/recovery settings, executable modes, the Windows PE installer and all four SHA-256 checksums.
 
-## Platform limitation
+## Not yet verified on target hosts
 
-Windows was cross-compiled successfully. There is no Windows runtime in this environment, so Windows Server runtime behaviour, filesystem locking and configuration replacement still need the Windows acceptance steps in [TESTING.md](TESTING.md). Linux and Chrome checks do not substitute for those checks.
+No Windows runtime or disposable booted systemd VM is available in this workspace. The following require the isolated host checklist in [TESTING.md](TESTING.md):
 
-## Repeating the checks
+- Windows Forms, UAC elevation, SCM startup/shutdown/recovery and Windows filesystem permissions at runtime.
+- Actual DEB/EXE installation, upgrade, boot without login, startup enable/disable, removal/purge and preservation of user data on both platforms.
+- Real desktop browser integration, accessibility/scaling and signed distribution. Builds are unsigned.
+- Discovery of a published 1.4.0 release; no such publication was performed here.
 
-See [TESTING.md](TESTING.md) and the root README. `tools/browser-smoke.cjs` uses Playwright as a separate development tool; `tools/cli-smoke.py` uses Python 3.12 or newer and the built Linux archive. Neither is an application runtime dependency. Both smoke tools need permission to open a temporary localhost listening socket in restricted development environments.
+Source banking implementations were preserved. No future adapter, periodic scan feature, mini API, remote banking connection or Discord integration was added. Existing configured daily scans remain operational.

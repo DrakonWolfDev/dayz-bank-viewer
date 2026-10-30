@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+if [ "$1" = configure ]; then
+ if ! getent passwd dayz-bank-viewer >/dev/null; then
+  adduser --system --group --home /var/lib/dayz-bank-viewer --no-create-home dayz-bank-viewer
+ fi
+ install -d -o dayz-bank-viewer -g dayz-bank-viewer -m 0755 /var/lib/dayz-bank-viewer
+ if [ -d /run/systemd/system ]; then
+  systemctl daemon-reload
+  # Installation does not opt the user into boot startup. Restore an already running service on upgrade.
+  if [ -e /var/lib/dayz-bank-viewer/.restart-on-upgrade ]; then
+   rm -f /var/lib/dayz-bank-viewer/.restart-on-upgrade
+   systemctl start dayz-bank-viewer.service
+  fi
+ fi
+fi
