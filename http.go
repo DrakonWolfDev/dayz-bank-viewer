@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-//go:embed web/*
+//go:embed web/* LICENSE
 var webFiles embed.FS
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -47,6 +47,12 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, out any) error {
 }
 func handler(m *Manager, loopback bool) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /licence", func(w http.ResponseWriter, r *http.Request) {
+		data, _ := webFiles.ReadFile("LICENSE")
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Write(data)
+	})
+	mux.HandleFunc("GET /api/version", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"version": version}) })
 	mux.HandleFunc("GET /api/dashboard", func(w http.ResponseWriter, r *http.Request) {
 		d, err := m.Dashboard(r.URL.Query().Get("server"))
 		if err != nil {

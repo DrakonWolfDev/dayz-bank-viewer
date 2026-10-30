@@ -182,3 +182,5 @@ $('settings-form').addEventListener('submit', saveSettings);
 $('account-close').addEventListener('click', () => $('account-dialog').close());
 document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(state.timer); else load(); });
 load();
+
+api('/api/version').then(data => document.querySelectorAll('.version').forEach(el => { el.textContent = 'v' + data.version; })).catch(() => document.querySelectorAll('.version').forEach(el => { el.textContent = 'Unavailable'; }));
