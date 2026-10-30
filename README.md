@@ -8,6 +8,8 @@ The latest published build is the **1.4.2 testing prerelease**. The working tree
 
 The [product page](https://wolf-forge.co.uk/dayz-bank-viewer.html) is live on the Wolf Forge website. See the [readiness review](docs/VERIFICATION.md), [website setup](docs/WEBSITE.md) and [final release checklist](docs/RELEASE-CHECKLIST.md).
 
+GitHub Actions provides [development builds and tagged releases](docs/AUTOMATION.md). A verified stable release automatically notifies the Wolf Forge website to update its downloads.
+
 ## Install and launch
 
 Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the project's [GitHub releases](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases). Version **1.4.2** is a [prerelease for server testing](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases/tag/v1.4.2). Download it manually for testing. Target-host acceptance of the current candidate has been confirmed; the Windows follow-up changes are awaiting their own release.

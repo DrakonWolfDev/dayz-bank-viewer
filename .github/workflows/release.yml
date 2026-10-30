@@ -1,0 +1,78 @@
+name: Release build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing stable tag matching VERSION (for example v1.4.3)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      commit: ${{ steps.tag.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate version, source tag and website credential
+        id: tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+          SITE_TOKEN: ${{ secrets.WOLF_FORGE_SITE_TOKEN }}
+        run: |
+          python3 tools/release.py preflight --tag "$RELEASE_TAG"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  packages:
+    needs: preflight
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ needs.preflight.outputs.commit }}
+
+  publish:
+    needs: [preflight, packages]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: dayz-bank-viewer-packages
+          path: dist
+      - name: Publish the complete verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+        run: python3 tools/release.py publish --tag "$RELEASE_TAG"
+
+  website:
+    needs: [preflight, publish]
+    uses: ./.github/workflows/website.yml
+    with:
+      tag: ${{ needs.preflight.outputs.tag }}
+    secrets:
+      WOLF_FORGE_SITE_TOKEN: ${{ secrets.WOLF_FORGE_SITE_TOKEN }}

@@ -1,0 +1,90 @@
+name: Dev build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows native tests
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: stable
+          cache: false
+      - run: go test ./...
+      - run: go vet ./...
+
+  packages:
+    name: Build and verify all packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: stable
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+      - name: Install packaging and browser test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nsis
+          npm install --prefix "$RUNNER_TEMP/browser-tools" --no-audit --no-fund playwright@1.64.1
+          "$RUNNER_TEMP/browser-tools/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Test and vet
+        run: |
+          go test -race -cover ./...
+          go vet ./...
+          GOOS=windows GOARCH=amd64 go vet ./...
+          python3 -m unittest discover -s tools -p '*_test.py'
+          git diff --check
+      - name: Build Windows and Linux packages
+        run: go run ./tools/package
+      - name: Inspect packages and exercise portable runtime
+        run: |
+          python3 tools/package-smoke.py
+          python3 tools/cli-smoke.py
+          python3 tools/lifecycle-smoke.py
+      - name: Browser smoke with synthetic records
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+        run: |
+          mkdir -p artifacts
+          export DAYZ_BROWSER="$(node -p "require('playwright').chromium.executablePath()")"
+          node tools/browser-smoke.cjs dist/linux-amd64/dayz-bank-viewer
+      - name: Add matching source and verify complete checksums
+        run: python3 tools/release.py prepare
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: dayz-bank-viewer-packages
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.deb
+            dist/*-setup.exe
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14

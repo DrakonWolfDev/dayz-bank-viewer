@@ -1,0 +1,39 @@
+name: Update website downloads
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published stable tag to verify and send to Wolf Forge
+        type: string
+        required: true
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+    secrets:
+      WOLF_FORGE_SITE_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-downloads
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Verify public release downloads and notify website
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          SITE_TOKEN: ${{ secrets.WOLF_FORGE_SITE_TOKEN }}
+        run: python3 tools/release.py website --tag "$RELEASE_TAG"

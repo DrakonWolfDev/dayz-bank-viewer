@@ -2,6 +2,8 @@
 
 ## Automated checks
 
+GitHub Actions runs the checks below and native Windows tests for each push/PR. See [AUTOMATION.md](AUTOMATION.md) for development artifacts, tagged publication and website delivery. Run `python3 -m unittest discover -s tools -p '*_test.py'` to verify release inventory, checksum failures, immutable public releases and website dispatch boundaries.
+
 Run `go test -race -cover ./...` and `go vet ./...` from the project root. Tests use temporary directories and synthetic player files. They cover:
 
 - Required fields, optional values, BOMs, invalid types, integer limits, duplicate IDs, retry recovery and cancellation.
