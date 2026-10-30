@@ -164,7 +164,9 @@ def publish(tag, folder):
                 "--title", f"DayZ Bank Viewer {version}", "--generate-notes", "--notes-file", str(notes))
     run("gh", "release", "upload", tag, "--repo", REPOSITORY, "--clobber",
         *(str(folder / name) for name in artifacts(version).values()))
-    if verify_downloads(tag, release(tag), draft=True) != (folder / "SHA256SUMS").read_bytes():
+    # The tag endpoint can return 404 for drafts. The release listing includes
+    # drafts, and gh release download handles their assets by release ID.
+    if verify_downloads(tag, existing_release(tag), draft=True) != (folder / "SHA256SUMS").read_bytes():
         raise ValueError("Uploaded checksums differ from the built packages")
     run("gh", "release", "edit", tag, "--repo", REPOSITORY, "--draft=false", "--latest")
     print(f"Published https://github.com/{REPOSITORY}/releases/tag/{tag}")

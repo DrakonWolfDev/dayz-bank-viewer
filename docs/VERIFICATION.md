@@ -4,6 +4,12 @@
 
 The preceding automation commit `a0aad9f` passed [GitHub Actions](https://github.com/DrakonWolfDev/dayz-bank-viewer/actions/runs/41112700118), including native Windows tests and the website dispatch permission check. The versioned release changes only VERSION and documentation. Target-host acceptance remains the maintainer's 30 October confirmation recorded below. Builds remain unsigned; no private banking data is used in automated checks.
 
+## Publication record
+
+The immutable `v1.4.3` tag points to `05465ec727fa7a80c001ea33464cf26e228eb6ff`. Its [release run](https://github.com/DrakonWolfDev/dayz-bank-viewer/actions/runs/41114200052) passed preflight, native Windows tests and the complete Linux packaging/smoke job. Publication stopped after upload because the draft was queried through the published-tag endpoint, which returned HTTP 404. No partial public release was created.
+
+The six draft files were downloaded and compared byte for byte with the successful Actions artifact. All five SHA-256 checksums passed, and the source archive matched a fresh `git archive` of `v1.4.3` exactly. The existing draft was then published as the [1.4.3 stable release](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases/tag/v1.4.3), without replacing any assets or moving the tag. The separate website-update action was started for that published release. A subsequent automation-only fix uses the draft-capable release listing for verification and adds a regression test; it does not change the tagged application or released files.
+
 The readiness review and older reports below are historical evidence. Statements about the then-unversioned working tree and disabled website downloads describe that earlier checkpoint.
 
 ---

@@ -84,6 +84,22 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "already published"):
                 release.require_new_release("v1.4.3")
 
+    def test_draft_verification_does_not_use_published_tag_endpoint(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            self.fixture(folder)
+            draft = {"id": 123, "tag_name": "v1.4.3", "draft": True}
+            with patch.object(release, "validate_tag", return_value="1.4.3"), \
+                    patch.object(release, "require_new_release"), \
+                    patch.object(release, "require_newer_version"), \
+                    patch.object(release, "existing_release", return_value=draft), \
+                    patch.object(release, "release", side_effect=AssertionError("draft tag endpoint returns 404")), \
+                    patch.object(release, "verify_downloads", return_value=(folder / "SHA256SUMS").read_bytes()) as downloaded, \
+                    patch.object(release, "run") as run:
+                release.publish("v1.4.3", folder)
+                downloaded.assert_called_once_with("v1.4.3", draft, draft=True)
+                self.assertIn("--draft=false", run.call_args.args)
+
     def test_older_release_cannot_be_published_as_latest(self):
         previous = {"draft": False, "prerelease": False, "tag_name": "v1.5.0"}
         with patch.object(release, "run", return_value=json.dumps(previous)):
