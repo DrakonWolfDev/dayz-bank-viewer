@@ -7,7 +7,7 @@ import tempfile
 import zipfile
 
 version = Path('VERSION').read_text().strip()
-allowed = {'dayz-bank-viewer', 'dayz-bank-viewer.exe', 'README.md', 'config.example.json', 'VERSION', 'docs/TESTING.md', 'LICENSING.md', 'LICENSE', 'web/app.ico', 'GO-LICENSE', 'GO-PATENTS'}
+allowed = {'dayz-bank-viewer', 'dayz-bank-viewer.exe', 'README.md', 'config.example.json', 'VERSION', 'docs/TESTING.md', 'LICENSING.md', 'LICENSE', 'web/app.ico', 'web/app.png', 'GO-LICENSE', 'GO-PATENTS'}
 for suffix in ['linux-amd64.tar.gz', 'windows-amd64.zip']:
     file = Path(f'dist/dayz-bank-viewer-{version}-{suffix}')
     if suffix.endswith('.zip'):
@@ -18,7 +18,11 @@ for suffix in ['linux-amd64.tar.gz', 'windows-amd64.zip']:
             names = archive.getnames()
     members = {'/'.join(name.split('/')[1:]) for name in names}
     assert members <= allowed
-    assert len(members) == 10, members
+    assert len(members) == (11 if suffix.endswith('.zip') else 10), members
+    if suffix.endswith('.zip'):
+        with zipfile.ZipFile(file) as archive:
+            logo = next(name for name in names if name.endswith('/web/app.png'))
+            assert archive.read(logo) == Path('web/app.png').read_bytes()
     assert 'LICENSE' in members and 'GO-LICENSE' in members and 'GO-PATENTS' in members
 package = Path(f'dist/dayz-bank-viewer-{version}-linux-amd64.deb')
 with tempfile.TemporaryDirectory() as temp:

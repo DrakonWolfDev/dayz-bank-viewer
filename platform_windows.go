@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
+	"strings"
 	"syscall"
 	"unicode/utf16"
 	"unsafe"
@@ -40,15 +43,39 @@ func encodedPowerShell(script string) string {
 	return base64.StdEncoding.EncodeToString(raw)
 }
 func powershell(script string, env []string) error {
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-STA", "-NonInteractive", "-EncodedCommand", encodedPowerShell(script))
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-STA", "-NonInteractive", "-OutputFormat", "Text", "-EncodedCommand", encodedPowerShell(script))
+	// Suppress only the console. HideWindow sets SW_HIDE, which can also hide
+	// the first Forms dialog created by this PowerShell process.
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000} // CREATE_NO_WINDOW
 	cmd.Env = append(os.Environ(), env...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	// A GUI executable launched from the Start menu may have no valid console
+	// handles. Always supply pipes, and retain errors for the native error dialog.
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if stdout.Len() > 0 {
+		_, _ = os.Stdout.Write(stdout.Bytes())
+	}
+	if err != nil {
+		detail := strings.TrimSpace(stderr.String())
+		if detail == "" {
+			detail = strings.TrimSpace(stdout.String())
+		}
+		if detail != "" {
+			return fmt.Errorf("PowerShell: %w\n\n%s", err, detail)
+		}
+		return fmt.Errorf("PowerShell: %w", err)
+	}
+	return nil
 }
 func runWindowsDesktop(config string) error {
 	exe, _ := os.Executable()
-	return powershell(windowsDesktop, []string{"VIEWER_EXE=" + exe, "VIEWER_CONFIG=" + config, "VIEWER_VERSION=" + version, fmt.Sprint("VIEWER_PARENT_PID=", os.Getpid())})
+	script, err := desktopPowerShellScript()
+	if err != nil {
+		return err
+	}
+	return powershell(script, []string{"VIEWER_EXE=" + exe, "VIEWER_CONFIG=" + config, "VIEWER_VERSION=" + version, fmt.Sprint("VIEWER_PARENT_PID=", os.Getpid())})
 }
 func serviceCommand(action string) (string, error) {
 	commands := map[string]string{"start": "Start-Service DayZBankViewer", "stop": "Stop-Service DayZBankViewer", "restart": "Restart-Service DayZBankViewer", "enable": "Set-Service DayZBankViewer -StartupType Automatic", "disable": "Set-Service DayZBankViewer -StartupType Manual", "desktop": "Set-Service DayZBankViewer -StartupType Manual; Stop-Service DayZBankViewer"}
@@ -72,7 +99,7 @@ func nativeService(action string) error {
 	}
 	// Native UAC prompt; no credentials or commands interpolated from external input.
 	script := encodedPowerShell("$ErrorActionPreference='Stop'; " + command)
-	return powershell("$ErrorActionPreference='Stop'; $p=Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList '-NoProfile', '-EncodedCommand', '"+script+"'; if($p.ExitCode -ne 0){throw 'Service operation failed'}", nil)
+	return powershell("$ErrorActionPreference='Stop'; $p=Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList '-NoProfile', '-EncodedCommand', '"+script+"'; if($p.ExitCode -ne 0){throw 'Service operation failed'}", nil)
 }
 
 // Native SCM host: service startup never creates a desktop or browser.
@@ -170,7 +197,8 @@ func choosePreviousMode() (string, error) {
 	if err == nil {
 		return "desktop", nil
 	}
-	if e, ok := err.(*exec.ExitError); ok && e.ExitCode() == 10 {
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) && exitError.ExitCode() == 10 {
 		return "service", nil
 	}
 	return "", fmt.Errorf("desktop launch cancelled")

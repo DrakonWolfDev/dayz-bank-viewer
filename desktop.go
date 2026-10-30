@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -16,12 +17,33 @@ import (
 //go:embed desktop.ps1
 var windowsDesktop string
 
+type desktopState struct {
+	Running bool   `json:"running"`
+	Service bool   `json:"service"`
+	URL     string `json:"url"`
+	Account string `json:"account"`
+}
+
+func readDesktopState(config string) desktopState {
+	config = effectiveConfig(config)
+	status := desktopState{Service: managedInstall(config)}
+	if current, err := readInstance(config); err == nil {
+		status.Running = true
+		status.URL = current.URL
+		status.Account = current.Identity
+	}
+	return status
+}
+
 func controlAction(config, action string) error {
 	if action == "enable" {
 		return enableUnattended(config)
 	}
 	if action == "disable" {
 		return disableUnattended(config)
+	}
+	if action == "desktop-status" {
+		return json.NewEncoder(os.Stdout).Encode(readDesktopState(config))
 	}
 	config = effectiveConfig(config)
 	switch action {
@@ -33,17 +55,17 @@ func controlAction(config, action string) error {
 		fmt.Println(state.URL)
 		return nil
 	case "status":
+		mode := "Running as you"
+		if managedInstall(config) {
+			mode = "Unattended service"
+		}
+		fmt.Println(mode)
 		state, err := readInstance(config)
 		if err != nil {
 			fmt.Println("Stopped or unavailable")
 			return nil
 		}
 		address, _ := url.Parse(state.URL)
-		mode := "Running as you"
-		if managedInstall(config) {
-			mode = "Unattended service"
-		}
-		fmt.Println(mode)
 		if state.Identity != "" {
 			fmt.Println("Account:", state.Identity)
 		}

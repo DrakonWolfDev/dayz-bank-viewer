@@ -69,6 +69,9 @@ func release() error {
 			}
 		}
 		files := []string{binary, "README.md", "config.example.json", "VERSION", "docs/TESTING.md", "LICENSING.md", "LICENSE", "web/app.ico", "GO-LICENSE", "GO-PATENTS"}
+		if platform == "windows" {
+			files = append(files, "web/app.png")
+		}
 		for _, name := range files[1:] {
 			if strings.HasPrefix(name, "GO-") {
 				continue

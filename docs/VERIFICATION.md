@@ -1,3 +1,31 @@
+# Release readiness review — 30 October 2026
+
+## Current result
+
+Automated checks pass for the current working tree. The maintainer confirmed on 30 October 2026 that **all target-host checks passed**, including the latest Windows control-window changes and installer/service lifecycle. This is maintainer-reported acceptance; this workspace did not independently run those native-host checks. Earlier pending statements below are historical and are superseded by this confirmation for the current candidate.
+
+The current source includes changes made after the published `v1.4.2` tag (`6f9897c`). `VERSION` remains `1.4.2`; packages rebuilt locally during this review are development verification artifacts and must not replace the published 1.4.2 assets. Prepare the next patch release as **1.4.3**, commit the final source, then build all distributed artifacts from its matching tag. Do not describe the current working tree or these local packages as the published 1.4.2 source.
+
+## Rechecked in this review
+
+- `go test -race -cover ./...`: pass; application statement coverage 60.9%. The private corpus checks remain opt-in; this run used synthetic fixtures.
+- `go vet ./...` and Windows x64 `go vet ./...`: pass.
+- `go run ./tools/package`: Linux and Windows x64 portable archives, DEB and NSIS setup EXE build successfully. The extracted NSIS toolchain is selected with `MAKENSIS` and `NSISDIR`.
+- `python3 tools/package-smoke.py`: archive allowlists, licence notices, Debian scripts, service identity, executable modes, installer PE header and all four SHA-256 checksums pass.
+- `python3 tools/cli-smoke.py` and `python3 tools/lifecycle-smoke.py`: pass against the rebuilt packages. Native desktop tools are stubbed by the lifecycle smoke.
+- Chrome / Playwright `tools/browser-smoke.cjs`: pass for onboarding, settings, precision, mixed banking formats, ADM names, player/shared views, discovery, scan failure/recovery and responsive layouts. No unexpected external requests or page errors.
+- `git diff --check`: pass. Existing uncommitted implementation changes and new tests remain in the working tree.
+
+The sandbox required a writable `GOCACHE` and permission to use localhost sockets for runtime/browser checks. No live banking data was needed.
+
+## Website and final release steps
+
+The existing Wolf Forge static site is the chosen destination. The product page, catalogue entry and synthetic dashboard image were deployed through website commit `2bd4be9`; the live page/assets and manifest were verified. Stable download availability remains false until a complete stable release is published. See [WEBSITE.md](WEBSITE.md) for paths, verification and promotion. See [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) for the remaining release order.
+
+Builds remain unsigned; disclose that in the release and website. The earlier reports are retained below as dated evidence.
+
+---
+
 # V1.4.2 prerelease verification — 30 October 2026
 
 This build is prepared for home-server testing followed by production-server acceptance. Linux and Windows x64 binaries and installers are built from the matching v1.4.2 source tag. Automated coverage includes server/configuration discovery, manual/detected setup, independent player/clan views, bounded ADM history, sorting and read-only source handling.

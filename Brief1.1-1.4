@@ -1,0 +1,245 @@
+# Codex Development Brief — DayZ Bank Viewer V1.1–V1.4
+
+## Objective
+
+Refine the existing working DayZ Bank Viewer into a polished, accessible, easily installed application for Windows and Linux.
+
+**Preserve all existing banking functionality.** These releases focus on presentation, usability, installation, updates and service management.
+
+Work incrementally through versions 1.1, 1.2, 1.3 and 1.4.
+
+Do not implement future banking adapters, APIs, Discord integration or background scanning in this phase.
+
+---
+
+## V1.1 — Branding and Interface Copy
+
+### Branding
+- Improve the DayZ Bank Viewer logo and application icon.
+- Maintain a visual connection to Wolf Forge.
+- Keep the identity clean, professional and legible at small sizes.
+- Add a centred footer at the bottom of the interface:
+
+  **A Wolf Forge Project**
+
+- Link Wolf Forge branding to the official Wolf Forge website.
+
+### Header
+Immediately beneath the application title, display:
+
+**Your players. Their balances. Private by design.**
+
+Remove this text from beneath Account Overview to avoid duplication.
+
+Remove the existing "Independent of the DayZ server" statement from the bottom of the application.
+
+Preserve the current layout and functionality wherever possible.
+
+## V1.2 — Table Readability
+
+Improve the existing account tables with very subtle alternating row background tints.
+
+Requirements:
+- Improve the ability to follow information horizontally across a row.
+- Maintain good contrast in light and dark themes, where supported.
+- Do not interfere with selected rows, hover states or existing visual indicators.
+- Preserve sorting, filtering and account functionality.
+- Avoid introducing unnecessary decorative elements.
+
+The intention is refinement, not redesign.
+
+## V1.3 — Update Checking
+
+Add a manual update checker under Settings.
+
+Requirements:
+- Display the installed application version.
+- Provide a **Check for updates** button.
+- Compare the installed version against the official GitHub release source.
+- Display whether the application is current or a newer version is available.
+- Provide a link to the appropriate release/download page when an update exists.
+- Handle offline operation, GitHub failures and unexpected responses gracefully.
+- Never download or install updates without user permission.
+
+The small desktop control application introduced in V1.4 should also expose this functionality.
+
+Reuse established Wolf Forge update-checking patterns where appropriate.
+
+## V1.4 — Installation, Startup and Service Management
+
+### 1. Installers
+
+Provide straightforward installation packages:
+
+- Windows: `.exe` installer.
+- Linux: `.deb` package for Debian-based systems.
+
+The packages should include the runtime dependencies needed for normal operation wherever practical.
+
+Installation should not require users to manually run Python scripts or install development tools.
+
+### 2. Small Desktop Control Window
+
+Create a lightweight GUI for desktop environments.
+
+Display:
+- Application name and logo.
+- Installed version.
+- Current service status.
+- Actual listening port.
+- Local dashboard URL.
+- Button to open the dashboard.
+- Check for updates.
+- About information.
+- Licence information and link.
+- Start/stop controls where permitted.
+
+Avoid adding a second full management interface. The browser remains the primary user interface.
+
+The desktop window must not be required for headless operation.
+
+### 3. Automatic Browser Launch
+
+When the application is launched interactively:
+
+1. Start or connect to the existing viewer service.
+2. Determine the active port.
+3. Wait until the dashboard is ready.
+4. Open the user's default browser automatically.
+
+Do not repeatedly open browser tabs when reconnecting to an already running instance.
+
+Do not attempt to launch a browser during unattended service startup.
+
+### 4. Automatic Port Conflict Handling
+
+- Attempt to use the configured port first.
+- If occupied, find the next available port within a sensible bounded range.
+- Display the actual port in the control window.
+- Open the browser using that port.
+- Avoid launching duplicate viewer services.
+- Provide clear error messages if no suitable port is available.
+
+Use reliable socket binding rather than assuming a port remains available after checking it.
+
+### 5. Start Automatically at Boot
+
+Offer an optional **Start automatically when the computer starts** setting.
+
+Implement this through native operating-system facilities:
+
+- Windows Service.
+- Linux systemd service.
+
+Requirements:
+- Work without a user being logged in.
+- Support automatic restart following unexpected failures.
+- Allow users to enable or disable automatic startup.
+- Ensure the service can operate without a graphical environment.
+- Keep the service and desktop control window separate.
+
+### 6. Stop, Restart and Uninstall
+
+**Stopping the viewer**
+
+Provide a reliable way to stop and restart the viewer service without terminating unrelated processes.
+
+**Windows uninstall**
+
+The installer must register a normal Windows uninstall entry.
+
+Uninstallation should:
+- Stop the running service.
+- Disable and remove the registered service.
+- Remove application files and shortcuts.
+- Remove application-specific startup registrations.
+- Avoid leaving orphaned background processes.
+
+**Linux uninstall**
+
+The Debian package must support normal removal through the package manager.
+
+Removal should:
+- Stop the running systemd service.
+- Disable it if enabled.
+- Remove its service registration as appropriate.
+- Remove package-owned application files.
+- Reload systemd where necessary.
+- Leave unrelated services and applications untouched.
+
+**User data**
+
+Do not silently delete banking source files, logs, exported reports or user configuration.
+
+Follow normal platform conventions for retaining configuration on ordinary removal and explicitly removing it on purge or a clearly confirmed clean uninstall.
+
+Never modify or delete the original DayZ banking records during uninstall.
+
+### 7. Security and Reliability
+
+- Default to localhost-only access.
+- Do not expose banking information publicly by default.
+- Maintain read-only handling of banking source files.
+- Use appropriate service permissions.
+- Provide clear startup and failure messages.
+- Avoid duplicate processes and conflicting service instances.
+- Ensure installation, upgrades and uninstall work cleanly.
+
+---
+
+## Future Architecture — Not for Implementation
+
+Banking adapters are planned for a later release.
+
+The application may eventually support multiple DayZ banking systems through a common interface.
+
+When restructuring existing code, avoid unnecessary assumptions that would permanently tie the presentation layer to one banking format.
+
+However:
+
+**Do not build an adapter framework, additional banking parsers or compatibility detection in V1.1–V1.4.**
+
+Likewise, the following remain outside scope:
+- Configurable periodic scanning.
+- Cached banking snapshots.
+- Optional mini API.
+- Browser connections to remote server APIs.
+- Discord integration.
+- Hosted Wolf Forge banking services.
+
+These are future development considerations only.
+
+## Acceptance Criteria
+
+At the end of V1.4, a server owner should be able to:
+
+1. Download the appropriate installer.
+2. Install DayZ Bank Viewer without development tools.
+3. Launch the viewer from their application menu.
+4. Have the application select a usable port automatically.
+5. See the browser dashboard open without manually entering an address.
+6. Identify the viewer's running status and active port.
+7. Check for application updates.
+8. Optionally enable automatic startup and service recovery.
+9. Stop or restart the viewer when needed.
+10. Uninstall cleanly using the operating system's normal uninstall process.
+
+All existing V1 banking functionality must remain operational.
+
+## Development Guidance
+
+Inspect the existing repository and implementation before making architectural decisions.
+
+Build on the current code rather than rewriting the application unnecessarily.
+
+Use native operating-system mechanisms where appropriate.
+
+Test the installation, startup, restart, upgrade and uninstall lifecycle for both platforms.
+
+Document platform-specific limitations honestly.
+
+Maintain small, reviewable commits and sensible release boundaries.
+
+**Wolf Forge philosophy: Complex underneath. Calm and simple on the surface.**
+
+Deliver V1.1–V1.4, then stop. Do not begin future features without a separate decision.

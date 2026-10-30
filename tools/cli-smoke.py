@@ -40,6 +40,11 @@ def main():
                 assert json.load(response) == config
             assert json.loads((folder / "config.json").read_text()) == config
             assert not (elsewhere / "config.json").exists()
+            status = json.loads(subprocess.check_output(
+                [binary, '-control', 'desktop-status'], cwd=elsewhere, timeout=5,
+            ))
+            assert status['running'] is True and status['url'] == url, status
+            assert set(status) == {'running', 'service', 'url', 'account'}, status
             conflict = subprocess.run(
                 [binary, "-listen", url.removeprefix("http://")], cwd=elsewhere,
                 capture_output=True, text=True, timeout=5,
@@ -51,6 +56,10 @@ def main():
             process.wait(timeout=5)
             process.stderr.close()
         assert process.returncode == 0
+        stopped = json.loads(subprocess.check_output(
+            [binary, '-control', 'desktop-status'], cwd=elsewhere, timeout=5,
+        ))
+        assert stopped['running'] is False and stopped['url'] == '', stopped
         # Accidentally pointing -config at an account file must not overwrite it.
         account = root / "synthetic-account.json"
         contents = '{"m_Steam64ID":"76561198000000001","m_PlayerName":"Synthetic","m_OwnedCurrency":100}'

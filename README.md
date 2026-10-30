@@ -2,16 +2,22 @@
 
 A small, self-hosted, read-only banking dashboard for DayZ administrators. One executable serves the dashboard and reads locally accessible banking directories. No database, Node.js runtime, external services, fonts, analytics or internet connection is needed to run it.
 
+## Release status
+
+The latest published build is the **1.4.2 testing prerelease**. The working tree also contains Windows desktop improvements planned for **1.4.3**. Automated release checks pass, and all target-host acceptance checks were confirmed by the maintainer on 30 October 2026. Those improvements still need their own versioned release; locally rebuilt 1.4.2 files are development artifacts.
+
+The [product page](https://wolf-forge.co.uk/dayz-bank-viewer.html) is live on the Wolf Forge website. See the [readiness review](docs/VERIFICATION.md), [website setup](docs/WEBSITE.md) and [final release checklist](docs/RELEASE-CHECKLIST.md).
+
 ## Install and launch
 
-Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the project's [GitHub releases](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases). Version **1.4.2** is a [prerelease for server testing](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases/tag/v1.4.2). Download it manually while home-server and production-server acceptance are pending. Windows runtime validation is still required.
+Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the project's [GitHub releases](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases). Version **1.4.2** is a [prerelease for server testing](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases/tag/v1.4.2). Download it manually for testing. Target-host acceptance of the current candidate has been confirmed; the Windows follow-up changes are awaiting their own release.
 
 - **Windows:** run the setup EXE and launch **DayZ Bank Viewer** from the Start menu. Installation requires administrator permission. The installer registers a Windows Service with manual startup by default.
 - **Debian / Ubuntu:** run `sudo apt install ./dayz-bank-viewer-1.4.2-linux-amd64.deb`, then launch **DayZ Bank Viewer** from the application menu. Apt supplies desktop dependencies. A systemd service is installed with boot startup disabled by default.
 
 The small desktop window runs the viewer as the account that opened it. It opens the browser once when starting the viewer and displays its status and actual dashboard address. Use **Open dashboard** to open it again. Settings in the browser remain the primary interface. Add an absolute local banking directory, for example `D:/DayZ/Server1/Banking/PlayerDataBase` or `/srv/dayz/profiles/Banking/PlayerDataBase`.
 
-The desktop offers start, stop, restart, update checks and About/licence. Normal desktop use runs as **you**, with your existing folder permissions and personal configuration. It does not require administrator permission or start the system service. Closing the control window leaves your viewer running until you stop it or sign out; desktop mode does not promise operation after sign-out.
+The Windows control window uses charcoal panels, gold accents and the application’s wolf-and-coin logo. Viewer status, a copyable dashboard address and the prominent **Open dashboard** button sit together, with unattended startup in a separate panel. High-contrast mode uses Windows system colours. Linux retains its native Zenity control window. The desktop offers start, stop, restart, update checks and About/licence. Normal desktop use runs as **you**, with your existing folder permissions and personal configuration. It does not require administrator permission or start the system service. Closing the control window leaves your viewer running until you stop it or sign out; desktop mode does not promise operation after sign-out.
 
 **Run without signing in…** is a separate, optional setup step. It explains the service account and selected folders, copies a snapshot of your settings, and checks folder/file access while running as that account. Only a successful check enables boot startup. If setup fails, previous service settings/startup preference are restored and your desktop viewer is restarted. Banking files and their permissions are never changed by setup. Administrators can grant read-only access if they need this mode.
 
@@ -38,6 +44,29 @@ The configured port defaults to **20784**. If occupied by another application, t
 Portable `start` detaches the service process and writes startup messages to `config.json.log`. Reconnecting does not open another browser tab. Installed desktop copies use personal settings and run as the signed-in account. After explicitly selecting unattended mode, the control window uses the registered native service. On a headless Linux machine use `sudo systemctl start|stop|restart dayz-bank-viewer`; `sudo systemctl enable|disable dayz-bank-viewer` controls boot startup. On Windows an elevated PowerShell can use `Start-Service`, `Stop-Service`, `Restart-Service` and `Set-Service DayZBankViewer -StartupType Automatic|Manual`.
 
 For headless setup, an administrator can run `sudo /usr/bin/dayz-bank-viewer -service-setup "/absolute/path/to/config.json"` on Linux. This copies that configuration, checks access as the service account and enables startup only if the check succeeds.
+
+### Windows Server without a desktop
+
+The control window is optional. On a server with a desktop, configure the dashboard and select **Run without signing in…** once. The installed service then runs after sign-out and at boot without opening a window or browser.
+
+For Server Core or a setup managed entirely through a terminal, install the setup EXE silently from an elevated PowerShell (`Start-Process .\dayz-bank-viewer-1.4.2-windows-amd64-setup.exe -ArgumentList '/S' -Wait`). Prepare a configuration using the example above with at least one enabled banking folder. Then run, still as administrator:
+
+```powershell
+$viewer = 'C:\Program Files\DayZ Bank Viewer\dayz-bank-viewer.exe'
+$setup = Start-Process -FilePath $viewer -ArgumentList '-headless -service-setup "C:\ViewerSetup\config.json"' -Wait -PassThru
+$setup.ExitCode # 0 means service setup and folder access checks succeeded
+Get-Service DayZBankViewer
+```
+
+The setup copies settings into `%ProgramData%\DayZ Bank Viewer\config.json`, checks access as `NT AUTHORITY\LocalService`, and enables automatic startup only on success. `-headless` also suppresses error dialogs. Grant that account read/traverse access to the selected folders before setup. The installer must have registered the service; the portable ZIP alone does not register one.
+
+To use the dashboard from another computer, keep the default localhost listener and use an SSH tunnel if SSH access to the server is already configured:
+
+```sh
+ssh -N -L 20784:127.0.0.1:20784 administrator@your-server
+```
+
+Leave that connection open and visit `http://127.0.0.1:20784` on your computer. If the viewer selected a fallback port, use its actual port as the tunnel's destination. Settings, browsing and refresh work through the tunnel. For direct LAN access, configure the server's LAN listen address and restrict access as described under Configuration; the dashboard has no built-in login or TLS.
 
 Only the optional unattended service runs as a separate identity. The Linux service runs as the restricted `dayz-bank-viewer` user; Windows uses `NT AUTHORITY\LocalService`. Grant that identity read/traverse access to the selected banking directories using your normal filesystem permissions. It needs no write permission there. Desktop controls report unavailable paths through the existing scan warnings. Do not make banking directories writable to fix a read-permission problem.
 

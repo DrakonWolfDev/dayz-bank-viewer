@@ -164,6 +164,10 @@ func main() {
 				interactive = true
 			}
 		}
+		// Headless setup must also report failures without requiring a desktop.
+		if headless := flag.Lookup("headless"); headless != nil && headless.Value.String() == "true" {
+			interactive = false
+		}
 		if interactive && (runtime.GOOS == "windows" || os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != "") {
 			nativeError(err.Error())
 		}
