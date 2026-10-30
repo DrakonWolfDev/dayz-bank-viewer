@@ -21,29 +21,44 @@ type Amount int64
 func (a Amount) MarshalJSON() ([]byte, error) { return json.Marshal(strconv.FormatInt(int64(a), 10)) }
 
 type Account struct {
-	SteamID  string  `json:"steam_id"`
-	Name     string  `json:"name"`
-	Balance  Amount  `json:"balance"`
-	Bonus    *Amount `json:"bonus,omitempty"`
-	Paycheck *Amount `json:"paycheck,omitempty"`
-	ClanID   string  `json:"clan_id,omitempty"`
+	SteamID       string  `json:"steam_id,omitempty"`
+	PlayerID      string  `json:"player_id,omitempty"`
+	Format        string  `json:"format"`
+	Name          string  `json:"name"`
+	NameSource    string  `json:"name_source,omitempty"`
+	Balance       Amount  `json:"balance"`
+	Bonus         *Amount `json:"bonus,omitempty"`
+	Paycheck      *Amount `json:"paycheck,omitempty"`
+	ClanID        string  `json:"clan_id,omitempty"`
+	CapacityBonus *Amount `json:"capacity_bonus,omitempty"`
 }
 
-// AccountReader is the format boundary; v1 supports only the supplied format.
+// AccountReader is the boundary between a mod's storage and the dashboard.
 type AccountReader interface {
 	Read(io.Reader) (Account, error)
 }
 type BankingReader struct{}
 
 func (BankingReader) Read(r io.Reader) (Account, error) {
-	data, err := io.ReadAll(io.LimitReader(r, (1<<20)+1))
+	data, err := readAccountJSON(r)
 	if err != nil {
 		return Account{}, err
 	}
-	if len(data) > 1<<20 {
-		return Account{}, errors.New("account exceeds the 1 MiB limit")
+	return readBankingJSON(data)
+}
+
+func readAccountJSON(r io.Reader) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(r, (1<<20)+1))
+	if err != nil {
+		return nil, err
 	}
-	data = bytes.TrimPrefix(data, []byte{0xef, 0xbb, 0xbf})
+	if len(data) > 1<<20 {
+		return nil, errors.New("account exceeds the 1 MiB limit")
+	}
+	return bytes.TrimPrefix(data, []byte{0xef, 0xbb, 0xbf}), nil
+}
+
+func readBankingJSON(data []byte) (Account, error) {
 	var raw struct {
 		ID       string  `json:"m_Steam64ID"`
 		Name     *string `json:"m_PlayerName"`
@@ -52,16 +67,16 @@ func (BankingReader) Read(r io.Reader) (Account, error) {
 		Paycheck *int64  `json:"m_PayCheckBonus"`
 		ClanID   string  `json:"m_ClanID"`
 	}
-	if err = json.Unmarshal(data, &raw); err != nil {
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return Account{}, errors.New("invalid banking JSON or field types")
 	}
-	if len(raw.ID) != 17 || strings.IndexFunc(raw.ID, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
+	if !validSteamID(raw.ID) {
 		return Account{}, errors.New("m_Steam64ID must be a 17-digit string")
 	}
 	if raw.Name == nil || raw.Balance == nil {
 		return Account{}, errors.New("missing player name or m_OwnedCurrency")
 	}
-	a := Account{SteamID: raw.ID, Name: *raw.Name, Balance: Amount(*raw.Balance), ClanID: raw.ClanID}
+	a := Account{SteamID: raw.ID, Format: "banking", Name: *raw.Name, Balance: Amount(*raw.Balance), ClanID: raw.ClanID}
 	if raw.Bonus != nil {
 		v := Amount(*raw.Bonus)
 		a.Bonus = &v
@@ -78,10 +93,12 @@ type FileIssue struct {
 	Message string `json:"message"`
 }
 type Snapshot struct {
-	Accounts  []Account   `json:"accounts"`
-	ScannedAt time.Time   `json:"scanned_at"`
-	Files     int         `json:"files"`
-	Issues    []FileIssue `json:"issues"`
+	Accounts   []Account   `json:"accounts"`
+	ScannedAt  time.Time   `json:"scanned_at"`
+	Files      int         `json:"files"`
+	Issues     []FileIssue `json:"issues"`
+	Formats    []string    `json:"formats"`
+	NameLookup *NameLookup `json:"name_lookup,omitempty"`
 }
 
 func readWithRetry(ctx context.Context, path string, reader AccountReader) (Account, error) {
@@ -123,8 +140,9 @@ func scanDirectory(ctx context.Context, path string, reader AccountReader) (*Sna
 	if err != nil {
 		return nil, fmt.Errorf("cannot read banking directory: %w", err)
 	}
-	snap := &Snapshot{Accounts: []Account{}, Issues: []FileIssue{}}
+	snap := &Snapshot{Accounts: []Account{}, Issues: []FileIssue{}, Formats: []string{}}
 	seen := map[string]bool{}
+	formats := map[string]bool{}
 	for _, e := range entries {
 		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), ".json") {
 			continue
@@ -134,16 +152,21 @@ func scanDirectory(ctx context.Context, path string, reader AccountReader) (*Sna
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		if err == nil && seen[a.SteamID] {
-			err = errors.New("duplicate Steam64 ID; first valid file retained")
+		if err == nil && seen[a.identityKey()] {
+			err = errors.New("duplicate player ID; first valid file retained")
 		}
 		if err != nil {
 			snap.Issues = append(snap.Issues, FileIssue{e.Name(), err.Error()})
 			continue
 		}
-		seen[a.SteamID] = true
+		seen[a.identityKey()] = true
+		formats[a.Format] = true
 		snap.Accounts = append(snap.Accounts, a)
 	}
+	for format := range formats {
+		snap.Formats = append(snap.Formats, format)
+	}
+	sort.Strings(snap.Formats)
 	if snap.Files > 0 && len(snap.Accounts) == 0 {
 		return snap, fmt.Errorf("none of %d JSON files could be read as accounts; previous results retained", snap.Files)
 	}
@@ -152,7 +175,7 @@ func scanDirectory(ctx context.Context, path string, reader AccountReader) (*Sna
 		if a.Balance != b.Balance {
 			return a.Balance > b.Balance
 		}
-		return a.SteamID < b.SteamID
+		return a.identityKey() < b.identityKey()
 	})
 	snap.ScannedAt = time.Now()
 	return snap, nil

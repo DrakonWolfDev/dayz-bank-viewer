@@ -4,6 +4,8 @@ const state = { data: null, selected: '', query: '', sort: 'balance', ascending:
 const money = value => BigInt(value ?? '0').toLocaleString();
 const stamp = value => value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Never';
 const statusNames = { ready: 'Up to date', partial: 'Incomplete scan', error: 'Scan failed', scanning: 'Scanning', disabled: 'Disabled', not_scanned: 'Not scanned' };
+const formatNames = { banking: 'Banking / KR Banking compatible', dc_banking: 'DayZ-Banking (DC Banking)', expansion: 'DayZ Expansion ATM' };
+const playerID = account => account.steam_id || account.player_id || '';
 function node(tag, text, className) { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (className) el.className = className; return el; }
 async function api(path, options = {}) {
   const res = await fetch(path, { cache: 'no-store', ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -32,13 +34,15 @@ function render() {
   select.value = state.selected;
   $('account-count').textContent = d.account_count.toLocaleString();
   const enabledCount = d.servers.filter(s => s.enabled).length;
-  $('unique-count').textContent = state.selected ? 'Accounts on this server' : `${d.unique_players.toLocaleString()} unique ${d.unique_players === 1 ? 'player' : 'players'} · ${enabledCount} enabled ${enabledCount === 1 ? 'server' : 'servers'}`;
   $('total-balance').textContent = money(d.total); $('highest-balance').textContent = d.account_count ? money(d.highest) : '—';
   for (const id of ['total-balance', 'highest-balance']) {
     const el = $(id), long = el.textContent.length > 16;
     el.classList.toggle('long-number', long); el.closest('.stat').classList.toggle('has-long-number', long);
   }
   const servers = activeServers(), busy = servers.some(s => s.status === 'scanning');
+  $('banking-formats').textContent = servers.filter(s => s.snapshot?.formats?.length).map(s => `${s.name}: ${s.snapshot.formats.map(f => formatNames[f] || f).join(', ')}`).join(' · ');
+  $('banking-formats').hidden = !$('banking-formats').textContent;
+  $('unique-count').textContent = state.selected ? 'Accounts on this server' : `${d.unique_players.toLocaleString()} unique player IDs · ${enabledCount} enabled ${enabledCount === 1 ? 'server' : 'servers'}`;
   const badge = $('status-badge');
   badge.textContent = !servers.length ? 'No servers connected' : busy ? 'Scanning' : d.complete ? 'Up to date' : 'Needs attention';
   badge.dataset.kind = busy || !servers.length ? 'neutral' : d.complete ? 'ready' : 'warning';
@@ -52,7 +56,8 @@ function render() {
 function renderWarnings(servers) {
   const box = $('scan-warning'); box.replaceChildren();
   for (const s of servers) {
-    if (s.status === 'ready') continue;
+    const lookup = s.snapshot?.name_lookup;
+    if (s.status === 'ready' && !lookup?.issues.length) continue;
     const article = node('div');
     article.append(node('strong', `${s.name} · ${statusNames[s.status]}`));
     if (s.error) article.append(node('p', s.error + (s.snapshot ? ' Showing cached results from ' + stamp(s.snapshot.scanned_at) + '.' : ' No cached results are available.')));
@@ -73,6 +78,12 @@ function renderWarnings(servers) {
       details.append(list); article.append(details);
     }
     if (s.snapshot && s.snapshot.files === 0) article.append(node('p', 'The directory contains no account JSON files.'));
+    if (lookup?.issues.length) {
+      const details = node('details'); details.append(node('summary', 'Player name lookup information'));
+      const list = node('ul', undefined, 'issue-list');
+      lookup.issues.forEach(issue => list.append(node('li', `${issue.file}: ${issue.message}`)));
+      details.append(list); article.append(node('p', 'Some admin logs could not be searched fully. Bank balances are unaffected.'), details);
+    }
     box.append(article);
   }
   box.hidden = box.childElementCount === 0;
@@ -80,7 +91,7 @@ function renderWarnings(servers) {
 function renderTable() {
   if (!state.data) return;
   const query = state.query.toLocaleLowerCase();
-  const rows = state.data.accounts.filter(a => a.name.toLocaleLowerCase().includes(query) || a.steam_id.includes(query));
+  const rows = state.data.accounts.filter(a => a.name.toLocaleLowerCase().includes(query) || playerID(a).toLocaleLowerCase().includes(query));
   rows.sort((a, b) => {
     let result;
     if (state.sort === 'name') result = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -96,7 +107,7 @@ function renderTable() {
     const initials = (a.name.trim() || '?').split(/\s+/).slice(0, 2).map(s => Array.from(s)[0]).join('').toLocaleUpperCase();
     const avatar = node('span', initials, 'avatar'); avatar.setAttribute('aria-hidden', 'true');
     button.append(avatar, node('span', a.name || 'Unnamed player')); button.addEventListener('click', () => showAccount(a)); name.append(button); tr.append(name);
-    tr.append(node('td', a.steam_id, 'steam'));
+    const id = node('td', playerID(a), 'steam'); id.title = a.player_id ? 'DayZ player ID (Steam64 ID not supplied)' : 'Steam64 ID'; tr.append(id);
     if (!state.selected) tr.append(node('td', a.server_name, 'server-name'));
     tr.append(node('td', money(a.balance), 'numeric balance')); $('accounts').append(tr);
   }
@@ -105,7 +116,7 @@ function renderTable() {
   $('empty').hidden = rows.length > 0;
   const noServers = state.data.servers.length === 0;
   $('empty-title').textContent = noServers ? 'Connect your first server' : query ? 'No matching accounts' : 'No accounts to display';
-  $('empty-text').textContent = noServers ? 'Add a local banking directory to start viewing accounts.' : query ? 'Try a different player name or Steam64 ID.' : 'Check the scan information above, or refresh your banking source.';
+  $('empty-text').textContent = noServers ? 'Add a local banking directory to start viewing accounts.' : query ? 'Try a different player name or player ID.' : 'Check the scan information above, or refresh your banking source.';
   $('empty-settings').hidden = !noServers;
   $('page-description').textContent = rows.length ? `${start + 1}–${Math.min(start + state.pageSize, rows.length)} of ${rows.length.toLocaleString()} accounts` + (query ? ' matching your search' : '') : 'No accounts to display';
   $('page-number').textContent = `${state.page} / ${pages}`; $('previous').disabled = state.page <= 1; $('next').disabled = state.page >= pages;
@@ -117,7 +128,7 @@ function renderTable() {
 }
 function showAccount(a) {
   $('account-title').textContent = a.name || 'Unnamed player'; $('account-details').replaceChildren();
-  const fields = [['Server', a.server_name], ['Steam64 ID', a.steam_id], ['Bank balance', money(a.balance)], ['Bonus currency', a.bonus === undefined ? 'Not supplied' : money(a.bonus)], ['Paycheck bonus', a.paycheck === undefined ? 'Not supplied' : money(a.paycheck)], ['Clan ID', a.clan_id || 'None']];
+  const fields = [['Server', a.server_name], ['Banking format', formatNames[a.format] || 'Unknown'], ['Steam64 ID', a.steam_id || 'Not supplied'], ...(a.player_id ? [['DayZ player ID', a.player_id], ['Player name', a.name || 'Not found in local admin logs'], ['Name source', a.name_source === 'admin_log' ? 'Local ADM log (last observed name)' : 'Not supplied by this format']] : []), ['Bank balance', money(a.balance)], ['Bonus currency', a.bonus === undefined ? 'Not supplied' : money(a.bonus)], ['Paycheck bonus', a.paycheck === undefined ? 'Not supplied' : money(a.paycheck)], ['Account capacity bonus', a.capacity_bonus === undefined ? 'Not supplied' : money(a.capacity_bonus)], ['Clan ID', a.clan_id || 'None']];
   fields.forEach(([label, value]) => $('account-details').append(node('dt', label), node('dd', value)));
   $('account-dialog').showModal();
 }
@@ -142,11 +153,12 @@ function addServerField(server = {}) {
   const enabledLabel = node('label', undefined, 'checkbox-label'), enabled = node('input'); enabled.type = 'checkbox'; enabled.name = 'enabled'; enabled.checked = server.enabled ?? true;
   enabledLabel.append(enabled, document.createTextNode('Enabled'));
   const remove = node('button', 'Remove configuration', 'remove-button'); remove.type = 'button'; remove.addEventListener('click', () => field.remove()); header.append(enabledLabel, remove); field.append(header);
-  for (const [key, label, placeholder, value] of [['name', 'Server name', 'e.g. Chernarus', server.name], ['path', 'Absolute banking directory', 'e.g. D:/DayZ/Server1/Banking', server.path]]) {
-    const id = 'field-' + (++fieldSequence); const input = node('input'); input.id = id; input.name = key; input.required = true; if (key === 'name') input.maxLength = 120;
+  for (const [key, label, placeholder, value] of [['name', 'Server name', 'e.g. Chernarus', server.name], ['path', 'Absolute banking directory', 'e.g. D:/DayZ/Server1/Banking', server.path], ['log_path', 'Admin log directory (optional)', 'e.g. D:/DayZ/Server1/profiles', server.log_path]]) {
+    const id = 'field-' + (++fieldSequence); const input = node('input'); input.id = id; input.name = key; input.required = key !== 'log_path'; if (key === 'name') input.maxLength = 120;
     input.placeholder = placeholder; input.value = value || ''; input.autocomplete = 'off'; input.spellcheck = false;
     const lbl = node('label', label); lbl.htmlFor = id; field.append(lbl, input);
   }
+  field.append(node('small', 'ADM logs can supply names for Expansion accounts. Leave blank to check profiles and recognised log_storage folders automatically for an ExpansionMod/ATM source. Logs are read only when accounts refresh.', 'field-help'));
   $('server-fields').append(field);
   return field;
 }
@@ -154,7 +166,7 @@ async function saveSettings(event) {
   event.preventDefault(); if (state.saving) return;
   state.saving = true; $('save-settings').disabled = true; $('settings-error').hidden = true;
   const previousListen = state.config.listen;
-  const config = { listen: $('listen').value.trim(), servers: [...$('server-fields').children].map(f => ({ id: f.dataset.id, name: f.elements.name.value.trim(), path: f.elements.path.value.trim(), enabled: f.elements.enabled.checked })), refresh_times: $('refresh-times').value.split(',').map(s => s.trim()).filter(Boolean) };
+  const config = { listen: $('listen').value.trim(), servers: [...$('server-fields').children].map(f => ({ id: f.dataset.id, name: f.elements.name.value.trim(), path: f.elements.path.value.trim(), log_path: f.elements.log_path.value.trim(), enabled: f.elements.enabled.checked })), refresh_times: $('refresh-times').value.split(',').map(s => s.trim()).filter(Boolean) };
   try {
     state.config = await api('/api/config', { method: 'PUT', body: JSON.stringify(config) });
     if (state.selected && !state.config.servers.some(s => s.id === state.selected)) state.selected = '';
@@ -176,6 +188,8 @@ $('refresh').addEventListener('click', async () => {
   catch (err) { notice('Could not refresh. ' + err.message); $('refresh').disabled = false; }
 });
 $('settings-open').addEventListener('click', openSettings); $('empty-settings').addEventListener('click', openSettings);
+for (const id of ['help-open', 'settings-help']) $(id).addEventListener('click', () => $('help-dialog').showModal());
+$('help-close').addEventListener('click', () => $('help-dialog').close());
 $('settings-close').addEventListener('click', () => $('settings').close()); $('settings-cancel').addEventListener('click', () => $('settings').close());
 $('add-server').addEventListener('click', () => { const f = addServerField(); f.querySelector('input[name="name"]').focus(); });
 $('settings-form').addEventListener('submit', saveSettings);

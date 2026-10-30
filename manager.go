@@ -42,7 +42,7 @@ type Manager struct {
 
 func newManager(c Config, path string) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
-	m := &Manager{config: c, configPath: path, states: map[string]*serverState{}, reader: BankingReader{}, ctx: ctx, cancel: cancel, slots: make(chan struct{}, 4)}
+	m := &Manager{config: c, configPath: path, states: map[string]*serverState{}, reader: AutoBankingReader{}, ctx: ctx, cancel: cancel, slots: make(chan struct{}, 4)}
 	for _, s := range c.Servers {
 		m.states[s.ID] = &serverState{config: s}
 	}
@@ -71,7 +71,7 @@ func (m *Manager) Update(c Config) error {
 	states := map[string]*serverState{}
 	for _, s := range c.Servers {
 		state := &serverState{config: s}
-		if prev := m.states[s.ID]; prev != nil && prev.config.Path == s.Path {
+		if prev := m.states[s.ID]; prev != nil && prev.config.Path == s.Path && prev.config.LogPath == s.LogPath {
 			// Reuse the state so an in-flight scan remains associated with this path.
 			state = prev
 			state.config = s
@@ -102,20 +102,26 @@ func (m *Manager) Refresh(id string) (int, error) {
 		s.scanning = true
 		t := time.Now()
 		s.lastAttempt = &t
-		path := s.config.Path
+		config := s.config
 		m.wg.Add(1)
 		count++
-		go m.scan(sid, s, path)
+		go m.scan(sid, s, config)
 	}
 	return count, nil
 }
-func (m *Manager) scan(id string, state *serverState, path string) {
+func (m *Manager) scan(id string, state *serverState, config ServerConfig) {
 	defer m.wg.Done()
 	var snap *Snapshot
 	var err error
 	select {
 	case m.slots <- struct{}{}:
-		snap, err = scanDirectory(m.ctx, path, m.reader)
+		snap, err = scanDirectory(m.ctx, config.Path, m.reader)
+		if err == nil {
+			enrichAccountNames(m.ctx, snap, config)
+			if m.ctx.Err() != nil {
+				err = m.ctx.Err()
+			}
+		}
 		<-m.slots
 	case <-m.ctx.Done():
 		err = m.ctx.Err()
@@ -211,7 +217,7 @@ func (m *Manager) Dashboard(id string) (Dashboard, error) {
 		for _, a := range s.Snapshot.Accounts {
 			d.Accounts = append(d.Accounts, Row{Account: a, ServerID: s.ID, ServerName: s.Name})
 			total.Add(total, big.NewInt(int64(a.Balance)))
-			unique[a.SteamID] = true
+			unique[a.identityKey()] = true
 		}
 	}
 	if !found {
@@ -225,8 +231,8 @@ func (m *Manager) Dashboard(id string) (Dashboard, error) {
 		if a.Balance != b.Balance {
 			return a.Balance > b.Balance
 		}
-		if a.SteamID != b.SteamID {
-			return a.SteamID < b.SteamID
+		if a.identityKey() != b.identityKey() {
+			return a.identityKey() < b.identityKey()
 		}
 		return a.ServerID < b.ServerID
 	})

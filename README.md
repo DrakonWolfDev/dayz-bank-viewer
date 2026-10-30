@@ -57,6 +57,10 @@ Use **Installed apps / Add or remove programs** on Windows or `sudo apt remove d
 
 Upgrades retain configuration and boot-start preferences and restart a previously running native service. Portable users should stop their old viewer before replacing its binary.
 
+## In-app help
+
+Choose **Help** in the dashboard header or **Settings help** inside Settings for an offline guide to every setting, account folders, two banking mods on one server, ADM names, refreshes and scan problems. Opening help from Settings preserves unsaved edits.
+
 ## Configuration
 
 Portable `config.json` lives **beside the executable**, regardless of the working directory. Installed desktop copies use `~/.config/DayZ Bank Viewer/config.json` on Linux (or the configured `XDG_CONFIG_HOME`) and `%APPDATA%\DayZ Bank Viewer\config.json` on Windows. Optional unattended services retain `/var/lib/dayz-bank-viewer/config.json` and `%ProgramData%\DayZ Bank Viewer\config.json` respectively. Service selection is remembered per user beside personal settings. Private runtime credentials and public port/status discovery sit beside the configuration; neither contains account records. On first launch it is optional; Settings creates it when saved. `config.example.json` is an empty starting point. You can also create:
@@ -99,13 +103,39 @@ The default binding accepts access from this machine only. There is **no built-i
 
 ## Banking format and precision
 
-Each file must be an object with a 17-digit **string** `m_Steam64ID`, a string `m_PlayerName`, and integer `m_OwnedCurrency`. The optional `m_BonusCurrency`, `m_PayCheckBonus`, and string `m_ClanID` appear separately in player details. Unknown fields are ignored. UTF-8 with or without a BOM is supported.
+The viewer automatically detects supported player-account schemas from the fields inside each JSON file. Existing configurations need no changes. Select the account folder itself; detection does not search parent folders or recurse through profiles.
 
-**Only `m_OwnedCurrency` determines balances and rankings.** Individual currency values use signed 64-bit integers. Totals use arbitrary precision. API currency values and Steam IDs are decimal strings; the dashboard uses `BigInt`, including for sorting and formatting, so values above JavaScript's safe integer limit remain exact. Optional bonuses are never added to bank balances. Negative integer balances are preserved.
+| Format shown | Player account folder under server profiles | Required fields |
+| --- | --- | --- |
+| Banking / KR Banking compatible | `Banking/PlayerDataBase` or `KR_BANKING/PlayerDataBase` | `m_Steam64ID`, `m_PlayerName`, `m_OwnedCurrency` |
+| DayZ-Banking (DC Banking) | `DC_Banking/PlayerDatabase` | `m_PlainID`, `m_Username`, `m_OwnedCurrency` |
+| DayZ Expansion ATM | `ExpansionMod/ATM` | `PlayerID`, `MoneyDeposited` |
 
-Duplicate Steam IDs within one directory are reported and skipped after the first valid file in filename order. The same Steam ID on different servers counts as multiple accounts but one unique player in the network view. Summary cards cover the selected banking source, regardless of the current search. Ranks reflect balance ordering within that source and remain stable when searching or sorting by name.
+The dashboard shows detected formats for each source and in account details. A folder may contain multiple supported schemas. Unknown files, settings files, invalid records and records with multiple recognised ID fields are reported as skipped; no balance-field guessing is used. Empty folders have no detected format until valid records exist. Labels describe schema compatibility: Banking and KR Banking share their player fields, so account contents cannot prove which mod produced them.
 
-The small `AccountReader` interface isolates the supplied banking format. No other format, remote transfer, database or plugin framework is included in v1.
+Banking and DC Banking require a 17-digit string Steam64 ID and a string player name. Expansion stores a DayZ player ID (`PlayerIdentity.GetId()`), with no player name or Steam64 ID in its ATM account file. Expansion accounts retain their original DayZ ID for search and details, and never invent a Steam64 mapping. Local ADM logs can supply a last observed player name; accounts without a match display **Unnamed player**. Network unique counts refer to unique player IDs: Steam64 and DayZ IDs use separate namespaces, so the same person across both ID systems may count twice.
+
+**Only the stored bank balance determines totals and rankings:** `m_OwnedCurrency` for Banking/DC Banking and `MoneyDeposited` for Expansion. Banking's optional `m_BonusCurrency`, `m_PayCheckBonus` and `m_ClanID` appear separately. DC Banking's `m_MaxOwnedCurrencyBonus` increases account capacity and is shown separately as **Account capacity bonus**. Bonuses never increase the displayed balance. KR clan accounts and Expansion shared party accounts are outside this player-account view; do not point sources at those folders. Expansion settings-editor exports are configuration, not player account databases.
+
+Currency fields require signed 64-bit JSON integers. Totals use arbitrary precision. API currency values and identifiers are strings; the dashboard uses `BigInt`, including for sorting and formatting, so values above JavaScript's safe integer limit remain exact. Negative integer balances are preserved. Unknown fields are ignored. UTF-8 with or without a BOM is supported.
+
+Duplicate IDs within one identity namespace and directory are reported and skipped after the first valid file in filename order. The same ID on different sources counts as multiple accounts but one unique player ID. Summary cards cover the selected source, regardless of search. Ranks reflect balance ordering within that source and remain stable when searching or sorting by name.
+
+The `AccountReader` boundary and schema registry in `banking_formats.go` keep format adapters separate from scanning and the dashboard. This adds local read-only compatibility; it does not install mods or load third-party scripts. The adapters were checked against upstream storage definitions and synthetic fixtures; the supplied local Expansion ATM corpus also passed count, independently calculated total and source-hash checks. Validation of other real-server versions remains necessary.
+
+Storage references: [KR Banking player data](https://github.com/Krypton91/KR_Banking/blob/main/scripts/3_Game/KR_JsonDatabaseHandler.c), [DC Banking player data](https://github.com/DennisVidal/DayZ-Banking/blob/main/Scripts/4_World/BankingData.c), [Expansion ATM data](https://github.com/salutesh/DayZ-Expansion-Scripts/blob/experimental/DayZExpansion/Market/Scripts/4_World/DayZExpansion_Market/Systems/Market/ExpansionMarketATM_Data.c) and [Expansion identity creation](https://github.com/salutesh/DayZ-Expansion-Scripts/blob/experimental/DayZExpansion/Market/Scripts/4_World/DayZExpansion_Market/Systems/Market/ExpansionMarketModule.c).
+
+## Player names from local admin logs
+
+Expansion account refreshes can look up names in local `.ADM` files. Matching uses the exact DayZ ID from the log, never the player name. This supplies display names only; it does not convert IDs to Steam64 or merge identity namespaces. Existing names supplied by banking records remain authoritative.
+
+For the standard `profiles/ExpansionMod/ATM` layout, the viewer automatically checks direct `.ADM` children of `profiles`, plus existing `profiles/log_storage` and `server/log_storage` folders. The sibling server-root folder is inferred when the profiles folder is named `profiles` or `profile`; when the profiles directory is the server root itself, its own `log_storage` is checked. Files across these locations share one recency order and read budget. For other layouts, set **Admin log directory (optional)** in that source's Settings to the absolute folder containing its logs. The equivalent per-server JSON setting is `"log_path": "/srv/dayz/profiles"`. Blank means automatic discovery for the standard Expansion layout only. Each source uses its own logs; there is no recursive or system-wide search.
+
+The server must already produce admin logs (`-adminlog`). During account refreshes, the viewer checks up to 20 regular `.ADM` files, newest modification time first, with filename order breaking ties. It searches at most the last 4 MiB of each file and 32 MiB per source refresh. The last usable player entry within a file wins, with newer files taking precedence over older files. Keep original log modification times when copying archives if name recency matters. Only IDs needed by currently unnamed accounts are retained in memory.
+
+Logs are read-only and symlinks are skipped. Missing/unreadable logs and read limits appear separately in scan information without making valid banking totals incomplete. Unmatched names stay unavailable. Very long log lines (over 256 KiB) stop that file's search and report an issue. Lookup happens on account refresh, not dashboard polling. No log contents are served or saved, and account details identify names obtained from ADM logs. Names are historical labels and can change between sessions.
+
+If using unattended mode, its service account also needs read/traverse access to the log directory. Changing the configured log directory clears cached names and accounts until the next refresh.
 
 ## Build and verify
 

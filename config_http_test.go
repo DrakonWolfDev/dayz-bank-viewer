@@ -100,7 +100,7 @@ func request(h http.Handler, method, path, body, origin, host string) *httptest.
 func TestHTTPAPIAndLocalProtection(t *testing.T) {
 	dir := t.TempDir()
 	put(t, dir, "one.json", fixture("76561198000000001", "<script>alert(1)</script>", 9007199254740993))
-	m := testManager(t, ServerConfig{"a", "Test", dir, true})
+	m := testManager(t, ServerConfig{ID: "a", Name: "Test", Path: dir, Enabled: true})
 	refreshWait(t, m, "")
 	h := handler(m, true)
 	w := request(h, "GET", "/api/dashboard", "", "", "localhost:20784")

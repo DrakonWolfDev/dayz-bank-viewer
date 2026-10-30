@@ -536,6 +536,28 @@ dialog {
 dialog::backdrop {
   background:#080d11bf
 }
+.help-content details {
+  border-top:1px solid var(--line);
+  padding:14px 0
+}
+.help-content summary {
+  cursor:pointer;
+  font-weight:600
+}
+.help-content p,.help-content li {
+  font-size:13px;
+  line-height:1.7;
+  overflow-wrap:anywhere
+}
+.help-content li + li {
+  margin-top:9px
+}
+.help-content ul,.help-content ol {
+  padding-left:22px
+}
+.help-content code {
+  overflow-wrap:anywhere
+}
 #account-dialog {
   width:min(500px,calc(100vw - 32px))
 }

@@ -33,21 +33,29 @@ func TestPrivateCorpusReadOnly(t *testing.T) {
 		}
 		hashes[e.Name()] = sha256.Sum256(data)
 		var raw struct {
-			Balance int64 `json:"m_OwnedCurrency"`
+			Balance   *int64 `json:"m_OwnedCurrency"`
+			Deposited *int64 `json:"MoneyDeposited"`
 		}
 		if err := json.Unmarshal(data, &raw); err != nil {
 			t.Fatal("corpus JSON invalid")
 		}
-		total.Add(total, big.NewInt(raw.Balance))
+		balance := raw.Balance
+		if raw.Deposited != nil {
+			balance = raw.Deposited
+		}
+		if balance == nil {
+			t.Fatal("corpus missing bank balance")
+		}
+		total.Add(total, big.NewInt(*balance))
 	}
-	snap, err := scanDirectory(context.Background(), dir, BankingReader{})
+	snap, err := scanDirectory(context.Background(), dir, AutoBankingReader{})
 	if err != nil {
 		t.Fatal("corpus scan failed")
 	}
 	if len(snap.Issues) != 0 || len(snap.Accounts) != len(hashes) {
 		t.Fatal("corpus scan skipped accounts")
 	}
-	m := testManager(t, ServerConfig{"test", "Private test corpus", dir, true})
+	m := testManager(t, ServerConfig{ID: "test", Name: "Private test corpus", Path: dir, Enabled: true})
 	refreshWait(t, m, "")
 	d, err := m.Dashboard("")
 	if err != nil || d.Total != total.String() {

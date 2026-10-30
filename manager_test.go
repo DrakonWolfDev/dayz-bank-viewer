@@ -28,7 +28,7 @@ func TestSnapshotRecoveryAndTotals(t *testing.T) {
 	a, b := t.TempDir(), t.TempDir()
 	put(t, a, "one.json", fixture("76561198000000001", "One", 9223372036854775807))
 	put(t, b, "one.json", fixture("76561198000000001", "One", 9223372036854775807))
-	m := testManager(t, ServerConfig{"a", "Alpha", a, true}, ServerConfig{"b", "Bravo", b, true})
+	m := testManager(t, ServerConfig{ID: "a", Name: "Alpha", Path: a, Enabled: true}, ServerConfig{ID: "b", Name: "Bravo", Path: b, Enabled: true})
 	refreshWait(t, m, "")
 	d, err := m.Dashboard("")
 	if err != nil {
@@ -105,7 +105,7 @@ func TestIndependentScansAndReconfiguration(t *testing.T) {
 	dir := t.TempDir()
 	put(t, dir, "one.json", fixture("76561198000000001", "One", 20))
 	missing := filepath.Join(t.TempDir(), "missing")
-	m := testManager(t, ServerConfig{"a", "Alpha", dir, true}, ServerConfig{"b", "Broken", missing, true})
+	m := testManager(t, ServerConfig{ID: "a", Name: "Alpha", Path: dir, Enabled: true}, ServerConfig{ID: "b", Name: "Broken", Path: missing, Enabled: true})
 	b := &blockingReader{started: make(chan struct{}), release: make(chan struct{})}
 	m.reader = b
 	var release sync.Once
@@ -147,7 +147,7 @@ func TestConcurrentReadersSeeAtomicSnapshots(t *testing.T) {
 	dir := t.TempDir()
 	put(t, dir, "a.json", fixture("76561198000000001", "One", 10))
 	put(t, dir, "b.json", fixture("76561198000000002", "Two", 20))
-	m := testManager(t, ServerConfig{"a", "Alpha", dir, true})
+	m := testManager(t, ServerConfig{ID: "a", Name: "Alpha", Path: dir, Enabled: true})
 	refreshWait(t, m, "")
 	var readers sync.WaitGroup
 	for i := 0; i < 8; i++ {

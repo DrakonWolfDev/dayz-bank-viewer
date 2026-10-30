@@ -20,6 +20,7 @@ type ServerConfig struct {
 	Name    string `json:"name"`
 	Path    string `json:"path"`
 	Enabled bool   `json:"enabled"`
+	LogPath string `json:"log_path,omitempty"`
 }
 type Config struct {
 	Listen       string         `json:"listen"`
@@ -66,6 +67,13 @@ func validateConfig(c *Config, configPath string) error {
 			return fmt.Errorf("%s: use an absolute banking directory path", s.Name)
 		}
 		s.Path = filepath.Clean(s.Path)
+		s.LogPath = strings.TrimSpace(s.LogPath)
+		if s.LogPath != "" {
+			if !filepath.IsAbs(s.LogPath) {
+				return fmt.Errorf("%s: use an absolute admin log directory path", s.Name)
+			}
+			s.LogPath = filepath.Clean(s.LogPath)
+		}
 		if s.ID == "" {
 			s.ID = newID()
 		}

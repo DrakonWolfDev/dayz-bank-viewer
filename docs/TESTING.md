@@ -57,7 +57,7 @@ For each actual target OS, use an isolated VM with synthetic banking records and
 9. On Linux test ordinary removal, reinstall with retained settings, and explicit purge. Purge may remove only known configuration/runtime files. Banking sources, logs, exports and unknown user files must survive. On Windows inspect retained ProgramData and normal uninstall registration cleanup.
 10. Test portable archives separately, including startup from another working directory and headless operation without display variables. Check the default localhost binding and that existing origin/Host restrictions still apply.
 
-Authentication, remote transfer and other banking formats remain outside scope. Actual platform lifecycle verification is required before describing an installer as production verified.
+Authentication and remote transfer remain outside scope. Actual platform lifecycle verification is required before describing an installer as production verified.
 
 ## Desktop/unattended mode transitions (1.4.1)
 
@@ -67,3 +67,13 @@ Authentication, remote transfer and other banking formats remain outside scope. 
 4. With service-readable folders, repeat setup. Verify access succeeds under the actual service identity before startup is enabled; the desktop runtime stops and service mode is remembered. Reboot without login and verify recovery and dashboard readiness.
 5. Change Settings in service mode, then Switch back to desktop mode. Confirm current service settings are copied back, the prior personal copy is backed up, unattended startup stops/disables and the viewer restarts as the signed-in user. Test this with the service stopped as well as running.
 6. Upgrade/remove with a personal runtime and control window open. Verify only this installed application's processes close, package files are removed/replaced, personal/service settings are retained, and unrelated applications remain running. Test both platforms and multiple signed-in users.
+
+## Automatic banking formats
+
+The Go suite uses synthetic Banking/KR, DC Banking and Expansion ATM records. It checks schema detection, ambiguous and unknown records, strict integer types, exact totals, separate ID namespaces, capacity bonuses and unchanged source contents.
+
+For each real mod/version, select its player account folder from the README, refresh, and confirm the detected label, balances and identifiers against the server files. Verify Expansion names are either unavailable or labelled as coming from local ADM logs, Steam64 IDs remain unavailable, and DC capacity bonuses remain separate from balances. Do not use real player data in shared screenshots. Repeat partial/failure/recovery acceptance for each format.
+
+## ADM name lookup
+
+Synthetic tests cover old/new connection syntax, BOM/CRLF, player-list style entries, name changes, chat-text rejection, missing matches, automatic profiles-folder discovery, explicit folder persistence, bounded tail/file reads, cancellation and symlink rejection. The browser check confirms that log-derived names are searchable, labelled by source, and leave Steam64 unavailable. Missing logs must leave balances usable. Verify copied real ADM files against known accounts locally when available.
