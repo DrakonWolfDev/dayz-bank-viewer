@@ -1,3 +1,13 @@
+# V1.4.3 release verification — 30 October 2026
+
+`VERSION` is **1.4.3**. The stable release is built from the matching immutable `v1.4.3` tag through [Release build](AUTOMATION.md), which reruns native Windows tests, Linux race/coverage tests, Linux/Windows vet, packaging and synthetic runtime/browser checks before publication. All four packages, corresponding source and five SHA-256 checksums are verified before the complete release becomes public. Website downloads are promoted only after publication and verification of the public release.
+
+The preceding automation commit `a0aad9f` passed [GitHub Actions](https://github.com/DrakonWolfDev/dayz-bank-viewer/actions/runs/41112700118), including native Windows tests and the website dispatch permission check. The versioned release changes only VERSION and documentation. Target-host acceptance remains the maintainer's 30 October confirmation recorded below. Builds remain unsigned; no private banking data is used in automated checks.
+
+The readiness review and older reports below are historical evidence. Statements about the then-unversioned working tree and disabled website downloads describe that earlier checkpoint.
+
+---
+
 # Release readiness review — 30 October 2026
 
 ## Current result

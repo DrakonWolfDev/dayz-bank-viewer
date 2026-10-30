@@ -9,7 +9,7 @@ It builds the Windows x64 setup EXE and portable ZIP, Linux x64 DEB and portable
 ## Release build
 
 1. Complete target-host acceptance in [TESTING.md](TESTING.md). Automated Windows tests do not replace manual desktop, installer and reboot acceptance.
-2. Advance `VERSION` beyond existing stable releases, update README/release notes and commit/push the final source. The next intended version is `1.4.3`.
+2. Advance `VERSION` beyond existing stable releases, update README/release notes and commit/push the final source. The current release version is `1.4.3`.
 3. Create and push its matching immutable tag, for example `git tag -a v1.4.3 -m 'Release 1.4.3'` then `git push origin v1.4.3`. This starts **Release build**. Alternatively, run **Release build** manually with an existing matching tag.
 4. The workflow checks that the tag, VERSION and checkout commit agree, the repository is public and the website secret is configured. It then runs the complete Dev build checks against that exact commit.
 5. Only after all jobs pass, it assembles a draft GitHub Release, uploads all six files, downloads them again and checks every hash. It publishes the complete stable release and marks it latest. Builds remain unsigned; release notes disclose this.
@@ -32,4 +32,4 @@ Pushes to `main` also test the credential with a `desktop_release_connection_che
 - If publication succeeded but the website handoff failed, rerun the failed website job, or manually run **Update website downloads** with the published tag. This verifies and sends the existing release without rebuilding it. Older releases cannot replace the latest stable website links.
 - If the website receiver fails after dispatch succeeds, inspect its run in the website repository, correct the cause and rerun it. Existing live downloads remain until a verified manifest is deployed.
 
-Workflow definitions use pinned official GitHub Action commits. Go uses the current stable toolchain; Playwright is pinned to `1.64.1` and installed outside the source tree. Neither Node nor browser test tools are shipped to users. This setup alone does not bump VERSION, create a version tag or publish 1.4.3.
+Workflow definitions use pinned official GitHub Action commits. Go uses the current stable toolchain; Playwright is pinned to `1.64.1` and installed outside the source tree. Neither Node nor browser test tools are shipped to users. Development builds do not bump VERSION, create version tags or publish releases.

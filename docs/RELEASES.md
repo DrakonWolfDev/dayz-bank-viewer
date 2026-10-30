@@ -1,13 +1,15 @@
 # Release history
 
-## Next patch — Windows desktop polish (unreleased; planned 1.4.3)
+## V1.4.3 — Windows desktop polish (stable)
 
 - Refresh the Windows control window with the wolf-and-coin mark, charcoal/gold panels, selectable dashboard address, grouped controls and system colours in high contrast.
 - Keep status polling and actions asynchronous, capture PowerShell errors, preserve mode-choice exit codes and avoid child console windows. Compress the embedded desktop script to fit the Windows command-line limit.
 - Report desktop state as structured JSON, including the stopped-service selection; package the desktop logo in the Windows installer and portable archive.
 - Document Server Core unattended setup and SSH-tunnel access; keep headless setup errors free of dialogs.
+- Add verified Windows/Linux development builds and tagged stable publication, including exact-commit source, SHA-256 checksums and automatic Wolf Forge website download updates.
+- Run native Windows tests alongside Linux packaging and browser checks; make test fixtures portable across Windows path and permission conventions.
 
-Automated release checks pass. The maintainer confirmed all target-host acceptance checks passed on 30 October 2026. The latest changes are not in the published 1.4.2 prerelease. The next stable release needs its own matching version/tag, exact source and complete artifact set. See [VERIFICATION.md](VERIFICATION.md) and [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md).
+Automated release checks pass. The maintainer confirmed all target-host acceptance checks passed on 30 October 2026. Version 1.4.3 ships the four Windows/Linux packages, matching source and SHA-256 checksums from the immutable `v1.4.3` tag. Builds remain unsigned. See [VERIFICATION.md](VERIFICATION.md) and [AUTOMATION.md](AUTOMATION.md).
 
 ## V1.4.2 — Server discovery and shared accounts (prerelease)
 

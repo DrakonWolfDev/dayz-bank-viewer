@@ -4,7 +4,7 @@ A small, self-hosted, read-only banking dashboard for DayZ administrators. One e
 
 ## Release status
 
-The latest published build is the **1.4.2 testing prerelease**. The working tree also contains Windows desktop improvements planned for **1.4.3**. Automated release checks pass, and all target-host acceptance checks were confirmed by the maintainer on 30 October 2026. Those improvements still need their own versioned release; locally rebuilt 1.4.2 files are development artifacts.
+**Version 1.4.3** is the stable release, including the Windows desktop improvements. Automated release checks pass, and all target-host acceptance checks were confirmed by the maintainer on 30 October 2026. Builds are unsigned. Release packages and corresponding source are built from the matching `v1.4.3` tag.
 
 The [product page](https://wolf-forge.co.uk/dayz-bank-viewer.html) is live on the Wolf Forge website. See the [readiness review](docs/VERIFICATION.md), [website setup](docs/WEBSITE.md) and [final release checklist](docs/RELEASE-CHECKLIST.md).
 
@@ -12,10 +12,10 @@ GitHub Actions provides [development builds and tagged releases](docs/AUTOMATION
 
 ## Install and launch
 
-Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the project's [GitHub releases](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases). Version **1.4.2** is a [prerelease for server testing](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases/tag/v1.4.2). Download it manually for testing. Target-host acceptance of the current candidate has been confirmed; the Windows follow-up changes are awaiting their own release.
+Download the **Windows x64 setup EXE** or **Debian/Ubuntu x64 DEB** from the [1.4.3 stable release](https://github.com/DrakonWolfDev/dayz-bank-viewer/releases/tag/v1.4.3). Portable archives, matching source and SHA-256 checksums are included on the same release page.
 
 - **Windows:** run the setup EXE and launch **DayZ Bank Viewer** from the Start menu. Installation requires administrator permission. The installer registers a Windows Service with manual startup by default.
-- **Debian / Ubuntu:** run `sudo apt install ./dayz-bank-viewer-1.4.2-linux-amd64.deb`, then launch **DayZ Bank Viewer** from the application menu. Apt supplies desktop dependencies. A systemd service is installed with boot startup disabled by default.
+- **Debian / Ubuntu:** run `sudo apt install ./dayz-bank-viewer-1.4.3-linux-amd64.deb`, then launch **DayZ Bank Viewer** from the application menu. Apt supplies desktop dependencies. A systemd service is installed with boot startup disabled by default.
 
 The small desktop window runs the viewer as the account that opened it. It opens the browser once when starting the viewer and displays its status and actual dashboard address. Use **Open dashboard** to open it again. Settings in the browser remain the primary interface. Add an absolute local banking directory, for example `D:/DayZ/Server1/Banking/PlayerDataBase` or `/srv/dayz/profiles/Banking/PlayerDataBase`.
 
@@ -51,7 +51,7 @@ For headless setup, an administrator can run `sudo /usr/bin/dayz-bank-viewer -se
 
 The control window is optional. On a server with a desktop, configure the dashboard and select **Run without signing in…** once. The installed service then runs after sign-out and at boot without opening a window or browser.
 
-For Server Core or a setup managed entirely through a terminal, install the setup EXE silently from an elevated PowerShell (`Start-Process .\dayz-bank-viewer-1.4.2-windows-amd64-setup.exe -ArgumentList '/S' -Wait`). Prepare a configuration using the example above with at least one enabled banking folder. Then run, still as administrator:
+For Server Core or a setup managed entirely through a terminal, install the setup EXE silently from an elevated PowerShell (`Start-Process .\dayz-bank-viewer-1.4.3-windows-amd64-setup.exe -ArgumentList '/S' -Wait`). Prepare a configuration using the example above with at least one enabled banking folder. Then run, still as administrator:
 
 ```powershell
 $viewer = 'C:\Program Files\DayZ Bank Viewer\dayz-bank-viewer.exe'
