@@ -184,3 +184,10 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) clear
 load();
 
 api('/api/version').then(data => document.querySelectorAll('.version').forEach(el => { el.textContent = 'v' + data.version; })).catch(() => document.querySelectorAll('.version').forEach(el => { el.textContent = 'Unavailable'; }));
+$('check-updates').addEventListener('click', async () => {
+  $('check-updates').disabled = true; $('update-link').hidden = true; $('update-result').textContent = 'Checking GitHub…';
+  try { const result = await api('/api/updates', { method: 'POST', body: '{}' }); $('update-result').textContent = result.message;
+    if (result.status === 'available') { $('update-link').href = result.url; $('update-link').hidden = false; }
+  } catch (err) { $('update-result').textContent = 'Could not check for updates. ' + err.message; }
+  finally { $('check-updates').disabled = false; }
+});

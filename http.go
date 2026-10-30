@@ -53,6 +53,7 @@ func handler(m *Manager, loopback bool) http.Handler {
 		w.Write(data)
 	})
 	mux.HandleFunc("GET /api/version", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"version": version}) })
+	mux.HandleFunc("POST /api/updates", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, manualUpdate(r.Context())) })
 	mux.HandleFunc("GET /api/dashboard", func(w http.ResponseWriter, r *http.Request) {
 		d, err := m.Dashboard(r.URL.Query().Get("server"))
 		if err != nil {
