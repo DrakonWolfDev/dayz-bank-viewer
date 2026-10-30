@@ -16,6 +16,12 @@ import (
 func discoveryFixture(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
+	// Match discovery's canonical root. Windows runner temp paths can contain
+	// short (8.3) names that EvalSymlinks expands to their long spelling.
+	root, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, dir := range []string{"SC/eXpAnSiOnMoD/AtM", "SC/eXpAnSiOnMoD/Groups", "SC/KR_BANKING/PlayerDataBase", "SC/KR_BANKING/ClanDataBase", "SC/DC_Banking/PlayerDatabase", "Log_Storage", "config"} {
 		if err := os.MkdirAll(filepath.Join(root, dir), 0700); err != nil {
 			t.Fatal(err)

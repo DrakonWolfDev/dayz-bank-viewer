@@ -21,7 +21,7 @@ func TestInstalledDesktopUsesPersonalSettings(t *testing.T) {
 		}
 	}
 	personal, _ := configLocations("/portable/viewer", "linux", "/private/user/config", "", false)
-	if personal != "/portable/config.json" {
+	if personal != filepath.Join("/portable", "config.json") {
 		t.Fatal(personal)
 	}
 	config := filepath.Join(t.TempDir(), "config.json")
@@ -108,6 +108,10 @@ func TestReadOnlyFolderAccessChecks(t *testing.T) {
 	if err := os.WriteFile(file, original, 0600); err != nil {
 		t.Fatal(err)
 	}
+	before, err := os.Stat(file)
+	if err != nil {
+		t.Fatal(err)
+	}
 	c := defaultConfig()
 	c.Servers = []ServerConfig{{ID: "a", Name: "Private", Path: folder, Enabled: true}, {ID: "b", Name: "Missing", Path: filepath.Join(folder, "missing"), Enabled: true}, {ID: "c", Name: "Disabled", Path: "/unavailable", Enabled: false}}
 	report := checkBankingAccess(context.Background(), c)
@@ -115,7 +119,7 @@ func TestReadOnlyFolderAccessChecks(t *testing.T) {
 		t.Fatal(report)
 	}
 	info, _ := os.Stat(file)
-	if info.Mode().Perm() != 0600 {
+	if info.Mode().Perm() != before.Mode().Perm() {
 		t.Fatal("access checks changed source permissions")
 	}
 	after, _ := os.ReadFile(file)
