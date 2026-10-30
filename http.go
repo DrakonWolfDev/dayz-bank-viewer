@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -8,7 +9,9 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 //go:embed web/* LICENSE
@@ -55,10 +58,44 @@ func handler(m *Manager, loopback bool) http.Handler {
 	mux.HandleFunc("GET /api/version", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"version": version}) })
 	mux.HandleFunc("POST /api/updates", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, manualUpdate(r.Context())) })
 	mux.HandleFunc("GET /api/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		d, err := m.Dashboard(r.URL.Query().Get("server"))
+		accountType := r.URL.Query().Get("account_type")
+		if accountType == "" {
+			accountType = "player"
+		}
+		if accountType != "player" && accountType != "clan" {
+			apiError(w, 400, "account_type must be player or clan")
+			return
+		}
+		d, err := m.DashboardForType(r.URL.Query().Get("server"), accountType)
 		if err != nil {
 			apiError(w, 404, err.Error())
 			return
+		}
+		writeJSON(w, 200, d)
+	})
+	mux.HandleFunc("POST /api/discover", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Root       string `json:"root"`
+			ConfigPath string `json:"config_path"`
+		}
+		if err := decodeJSON(w, r, &body); err != nil {
+			apiError(w, 400, err.Error())
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		d, err := discoverServer(ctx, body.Root, body.ConfigPath)
+		if err != nil {
+			apiError(w, 400, err.Error())
+			return
+		}
+		for i := range d.Sources {
+			for _, configured := range m.Config().Servers {
+				path, err := filepath.EvalSymlinks(configured.Path)
+				if err == nil && path == d.Sources[i].Path {
+					d.Sources[i].AlreadyConfigured = true
+				}
+			}
 		}
 		writeJSON(w, 200, d)
 	})

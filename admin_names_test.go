@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -148,5 +149,28 @@ func TestCFLogStorageDiscoveryAndRecency(t *testing.T) {
 	dirs := adminLogDirectories(ServerConfig{Path: filepath.Join(root, "ExpansionMod", "ATM")})
 	if len(dirs) != 2 || dirs[1] != storage {
 		t.Fatal("root profiles layout did not discover log_storage")
+	}
+}
+
+func TestAdminNamesReachSixtiethFile(t *testing.T) {
+	dir := t.TempDir()
+	for i := 0; i < 61; i++ {
+		text := "unrelated entry\n"
+		if i == 59 {
+			text = `12:00:00 | Player "Sixtieth file" (id=` + nameTestID + `)` + "\n"
+		}
+		if i == 60 {
+			text = `12:00:00 | Player "Excluded" (id=excluded-player)` + "\n"
+		}
+		file := put(t, dir, fmt.Sprintf("session-%02d.ADM", i), text)
+		stamp := time.Unix(int64(1000-i), 0)
+		if err := os.Chtimes(file, stamp, stamp); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lookup := &NameLookup{}
+	names := readAdminNames(context.Background(), []string{dir}, map[string]bool{nameTestID: true, "excluded-player": true}, lookup)
+	if maxAdminFiles != 60 || maxAdminTotalBytes != 240<<20 || lookup.Files != 60 || names[nameTestID] != "Sixtieth file" || names["excluded-player"] != "" {
+		t.Fatal("60-file history limits failed", lookup.Files)
 	}
 }

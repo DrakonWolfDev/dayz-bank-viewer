@@ -16,11 +16,12 @@ import (
 )
 
 type ServerConfig struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Path    string `json:"path"`
-	Enabled bool   `json:"enabled"`
-	LogPath string `json:"log_path,omitempty"`
+	AccountType string `json:"account_type,omitempty"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Path        string `json:"path"`
+	Enabled     bool   `json:"enabled"`
+	LogPath     string `json:"log_path,omitempty"`
 }
 type Config struct {
 	Listen       string         `json:"listen"`
@@ -67,6 +68,9 @@ func validateConfig(c *Config, configPath string) error {
 			return fmt.Errorf("%s: use an absolute banking directory path", s.Name)
 		}
 		s.Path = filepath.Clean(s.Path)
+		if s.AccountType != "" && s.AccountType != "player" && s.AccountType != "clan" {
+			return fmt.Errorf("%s: account type must be player or clan", s.Name)
+		}
 		s.LogPath = strings.TrimSpace(s.LogPath)
 		if s.LogPath != "" {
 			if !filepath.IsAbs(s.LogPath) {

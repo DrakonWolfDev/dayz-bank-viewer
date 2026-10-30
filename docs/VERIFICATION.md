@@ -1,3 +1,13 @@
+# V1.4.2 prerelease verification — 30 October 2026
+
+This build is prepared for home-server testing followed by production-server acceptance. Linux and Windows x64 binaries and installers are built from the matching v1.4.2 source tag. Automated coverage includes server/configuration discovery, manual/detected setup, independent player/clan views, bounded ADM history, sorting and read-only source handling.
+
+The release checks cover the Go race suite, Linux/Windows vet, browser regression, extracted Linux package operation, archive allowlists, installer metadata and SHA-256 checksums. Native Windows runtime and real booted service lifecycle acceptance remain pending. The prerelease is not promoted to website downloads or the stable update checker. See [TESTING.md](TESTING.md).
+
+The report below records the earlier 1.4.1 development verification and is retained as historical context.
+
+---
+
 # V1.4.1 verification — 30 October 2026
 
 Implemented against `Brief1.1-1.4`. Version boundaries are recorded in [RELEASES.md](RELEASES.md). These are development packages, with no GitHub publication or website deployment.

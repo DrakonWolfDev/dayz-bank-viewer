@@ -77,3 +77,38 @@ For each real mod/version, select its player account folder from the README, ref
 ## ADM name lookup
 
 Synthetic tests cover old/new connection syntax, BOM/CRLF, player-list style entries, name changes, chat-text rejection, missing matches, automatic profiles-folder discovery, explicit folder persistence, bounded tail/file reads, cancellation and symlink rejection. The browser check confirms that log-derived names are searchable, labelled by source, and leave Steam64 unavailable. Missing logs must leave balances usable. Verify copied real ADM files against known accounts locally when available.
+
+
+## Shared accounts and deeper ADM history
+
+Add a KR clan source (`KR_BANKING/ClanDataBase`) or Expansion party source (`ExpansionMod/Groups`) with account type **Clans & parties**. Verify the shared total independently, switch between Players and Clans & parties, and check that totals, source options, names, IDs, sorting, search and details follow the selected view. Break and restore one shared account; verify cached clan results and diagnostics while player totals remain complete. Changing source account type must invalidate its cache. Disabled clan sources must be excluded from aggregate clan totals.
+
+Expansion binary versions 39–42 are supported; reject unsupported versions, truncated fields, invalid lengths/counts, invalid UTF-8 and trailing bytes. Native `.bin` accounts take precedence over same-stem legacy JSON. Synthetic tests cover all four versions; the opt-in private test currently accepts version 39 so its expected money can be calculated independently from that version’s final int32 field:
+
+```sh
+DAYZ_BANK_TEST_GROUP_CORPUS=/absolute/path/to/ExpansionMod/Groups go test -run TestPrivatePartyCorpusReadOnly -v
+```
+
+The private test reports counts and verification only, checks independent totals and unchanged source hashes, and never installs data as fixtures. Keep original backups outside Git. ADM tests must reach a required name in the 60th newest file and exclude the 61st; lookup stays limited to 4 MiB per file and 240 MiB per refresh and stops early when all needed player names are found.
+
+
+## Server folder discovery
+
+In Settings, enter a server directory or full backup and detect folders. Verify profile/config/SC and Log_Storage case variants, multiple player banking mods, shared clan/party folders, direct ADM logs and per-source log choices. Check the mission template and its configuration path, including mismatches between backup folder names and configuration contents. Several mission settings must require a choice. Unknown map suffixes stay visible without inventing an active map.
+
+Discovery alone must leave viewer configuration, account snapshots and source files unchanged. Save directly from the detected-folder preview, or use Add another server to stage a second root; Cancel discards unsaved sources and Save persists them. Existing source paths must be marked to prevent duplicate additions. Empty/unverified folders remain unchecked, custom configuration paths stay inside the chosen root, child symlinks and unrelated backup subtrees are not traversed, and passwords/account contents must never appear in preview JSON or rendered content. Changing the root while a request is pending must invalidate its preview.
+
+The optional real-backup check logs only the inferred map, counts and verification result:
+
+```sh
+DAYZ_BANK_TEST_SERVER_ROOT=/absolute/path/to/server-backup go test -run TestPrivateServerDiscoveryReadOnly -v
+```
+
+The supplied 2023 backup exposed one player folder, one party folder and one ADM location. Its serverDZ.cfg suggested Chernarus while the custom Config.cfg contained Namalsk. Both configurations must be discovered and available for explicit selection; this is evidence for requiring review rather than assuming the active launch configuration.
+
+
+## Guided settings layout
+
+Fresh setup shows Settings help, the server root, collapsed configuration override and adjacent Detect server folders / Manually add server choices. Scheduled refresh, Connection, Save/Cancel and Updates appear after choosing a route. Detection must keep the duplicate manual source fields hidden, allow saving reviewed choices directly, and let Add another server stage a root without writing configuration. Manual setup reveals source fields and an Add another server button. Existing configuration remains editable through a collapsed source control when reopening Settings.
+
+Connection starts collapsed; invalid required fields inside a closed details control must reveal the control for correction. Save/Cancel appear before the expanded Updates section. A successful save must close Settings and reveal the account table; failed saves must leave Settings open. The manual button appears on the left and the detection button on the right. A failed save must retain detected selections and editable mission/name choices for correction.

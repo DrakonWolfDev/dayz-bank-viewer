@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	maxAdminFiles            = 20
+	maxAdminFiles            = 60
 	maxAdminFileBytes  int64 = 4 << 20
-	maxAdminTotalBytes int64 = 32 << 20
+	maxAdminTotalBytes int64 = maxAdminFiles * maxAdminFileBytes
 )
 
 type NameLookup struct {
@@ -40,14 +40,9 @@ func adminLogDirectories(config ServerConfig) []string {
 	if strings.EqualFold(filepath.Base(config.Path), "ATM") && strings.EqualFold(filepath.Base(filepath.Dir(config.Path)), "ExpansionMod") {
 		profiles := filepath.Dir(filepath.Dir(config.Path))
 		dirs := []string{profiles}
-		candidates := []string{filepath.Join(profiles, "log_storage")}
-		if strings.EqualFold(filepath.Base(profiles), "profiles") || strings.EqualFold(filepath.Base(profiles), "profile") {
-			candidates = append(candidates, filepath.Join(filepath.Dir(profiles), "log_storage"))
-		}
-		for _, candidate := range candidates {
-			if _, err := os.Stat(candidate); !os.IsNotExist(err) {
-				dirs = append(dirs, candidate)
-			}
+		dirs = append(dirs, knownDirectories(context.Background(), profiles, "log_storage")...)
+		if profileDirectoryNames[strings.ToLower(filepath.Base(profiles))] {
+			dirs = append(dirs, knownDirectories(context.Background(), filepath.Dir(profiles), "log_storage")...)
 		}
 		return dirs
 	}
@@ -125,7 +120,7 @@ func readAdminNames(ctx context.Context, dirs []string, wanted map[string]bool, 
 		}
 		remaining := maxAdminTotalBytes - used
 		if remaining <= 0 {
-			lookup.Issues = append(lookup.Issues, FileIssue{"ADM lookup", "name lookup reached the 32 MiB read limit"})
+			lookup.Issues = append(lookup.Issues, FileIssue{"ADM lookup", fmt.Sprintf("name lookup reached the %d MiB read limit", maxAdminTotalBytes>>20)})
 			break
 		}
 		limit := min(maxAdminFileBytes, remaining)

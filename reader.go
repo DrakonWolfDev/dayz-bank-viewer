@@ -21,6 +21,10 @@ type Amount int64
 func (a Amount) MarshalJSON() ([]byte, error) { return json.Marshal(strconv.FormatInt(int64(a), 10)) }
 
 type Account struct {
+	GroupID       string  `json:"group_id,omitempty"`
+	Tag           string  `json:"tag,omitempty"`
+	OwnerID       string  `json:"owner_id,omitempty"`
+	OwnerName     string  `json:"owner_name,omitempty"`
 	SteamID       string  `json:"steam_id,omitempty"`
 	PlayerID      string  `json:"player_id,omitempty"`
 	Format        string  `json:"format"`
@@ -141,13 +145,26 @@ func scanDirectory(ctx context.Context, path string, reader AccountReader) (*Sna
 		return nil, fmt.Errorf("cannot read banking directory: %w", err)
 	}
 	snap := &Snapshot{Accounts: []Account{}, Issues: []FileIssue{}, Formats: []string{}}
+	_, clanSource := reader.(AutoClanReader)
+	binaryGroups := map[string]bool{}
+	if clanSource {
+		for _, e := range entries {
+			if !e.IsDir() && strings.EqualFold(filepath.Ext(e.Name()), ".bin") {
+				binaryGroups[strings.ToLower(strings.TrimSuffix(e.Name(), filepath.Ext(e.Name())))] = true
+			}
+		}
+	}
 	seen := map[string]bool{}
 	formats := map[string]bool{}
 	for _, e := range entries {
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), ".json") {
+		if e.IsDir() || !(strings.EqualFold(filepath.Ext(e.Name()), ".json") || (clanSource && strings.EqualFold(filepath.Ext(e.Name()), ".bin"))) {
 			continue
 		}
 		snap.Files++
+		if clanSource && strings.EqualFold(filepath.Ext(e.Name()), ".json") && binaryGroups[strings.ToLower(strings.TrimSuffix(e.Name(), filepath.Ext(e.Name())))] {
+			snap.Issues = append(snap.Issues, FileIssue{e.Name(), "legacy JSON skipped because a newer binary party file exists"})
+			continue
+		}
 		a, err := readWithRetry(ctx, filepath.Join(path, e.Name()), reader)
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -168,7 +185,7 @@ func scanDirectory(ctx context.Context, path string, reader AccountReader) (*Sna
 	}
 	sort.Strings(snap.Formats)
 	if snap.Files > 0 && len(snap.Accounts) == 0 {
-		return snap, fmt.Errorf("none of %d JSON files could be read as accounts; previous results retained", snap.Files)
+		return snap, fmt.Errorf("none of %d account files could be read as accounts; previous results retained", snap.Files)
 	}
 	sort.Slice(snap.Accounts, func(i, j int) bool {
 		a, b := snap.Accounts[i], snap.Accounts[j]

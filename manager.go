@@ -71,7 +71,7 @@ func (m *Manager) Update(c Config) error {
 	states := map[string]*serverState{}
 	for _, s := range c.Servers {
 		state := &serverState{config: s}
-		if prev := m.states[s.ID]; prev != nil && prev.config.Path == s.Path && prev.config.LogPath == s.LogPath {
+		if prev := m.states[s.ID]; prev != nil && prev.config.Path == s.Path && prev.config.LogPath == s.LogPath && prev.config.accountType() == s.accountType() {
 			// Reuse the state so an in-flight scan remains associated with this path.
 			state = prev
 			state.config = s
@@ -115,8 +115,12 @@ func (m *Manager) scan(id string, state *serverState, config ServerConfig) {
 	var err error
 	select {
 	case m.slots <- struct{}{}:
-		snap, err = scanDirectory(m.ctx, config.Path, m.reader)
-		if err == nil {
+		reader := m.reader
+		if config.accountType() == "clan" {
+			reader = AutoClanReader{}
+		}
+		snap, err = scanDirectory(m.ctx, config.Path, reader)
+		if err == nil && config.accountType() == "player" {
 			enrichAccountNames(m.ctx, snap, config)
 			if m.ctx.Err() != nil {
 				err = m.ctx.Err()
@@ -193,6 +197,10 @@ type Dashboard struct {
 }
 
 func (m *Manager) Dashboard(id string) (Dashboard, error) {
+	return m.DashboardForType(id, "player")
+}
+
+func (m *Manager) DashboardForType(id, accountType string) (Dashboard, error) {
 	views := m.Views()
 	d := Dashboard{Servers: views, Accounts: []Row{}, Total: "0", Complete: true, HostTime: time.Now().Format(time.RFC3339), Timezone: time.Now().Location().String()}
 	total := new(big.Int)
@@ -200,6 +208,9 @@ func (m *Manager) Dashboard(id string) (Dashboard, error) {
 	found := id == ""
 	selected := 0
 	for _, s := range views {
+		if s.accountType() != accountType {
+			continue
+		}
 		if id != "" && s.ID != id {
 			continue
 		}

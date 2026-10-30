@@ -98,6 +98,9 @@ func validSteamID(id string) bool {
 
 // Identity namespaces prevent a DayZ ID from being merged with a Steam64 ID.
 func (a Account) identityKey() string {
+	if a.GroupID != "" {
+		return a.Format + ":" + a.GroupID
+	}
 	if a.PlayerID != "" {
 		return "dayz:" + a.PlayerID
 	}

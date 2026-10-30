@@ -121,6 +121,9 @@ h1 span {
   margin:12px 0 0;
   font-size:14px
 }
+.server-control > select + label {
+  margin-top:12px
+}
 .server-control {
   width:270px;
   min-width:200px
@@ -829,3 +832,19 @@ dd {
     margin-top:8px
   }
 }
+
+.discovery-advanced { margin:14px 0; }
+.discovery-advanced summary { cursor:pointer; margin-bottom:12px; }
+#discovery-preview { border-top:1px solid var(--line); margin-top:16px; padding-top:12px; }
+#discovery-preview > select, #discovery-preview > input { margin-bottom:14px; }
+.discovery-source { border:1px solid var(--line); border-radius:8px; padding:14px; margin:12px 0; }
+.discovery-source p, .discovery-warnings { overflow-wrap:anywhere; font-size:12px; }
+.discovery-source p { margin:7px 0; }
+.discovery-source select { margin-top:7px; }
+.discovery-warnings { color:var(--amber); padding-left:20px; }
+
+#discovery-mission-details { overflow-wrap:anywhere; }
+
+.setup-actions { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+#source-editor > summary, #connection-settings > summary { cursor:pointer; font-weight:600; margin-bottom:14px; }
+#add-server { margin-top:14px; }

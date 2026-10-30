@@ -1,6 +1,18 @@
-# V1.1–V1.4 changes
+# Release history
 
-The current local development version is 1.4.1. Nothing has been published to GitHub or deployed to the Wolf Forge website as part of this work.
+## V1.4.2 — Server discovery and shared accounts (prerelease)
+
+Published for home-server testing before production-server acceptance. This prerelease does not promote website downloads or appear in the stable update checker. Download it manually from the v1.4.2 GitHub release. Builds are unsigned; Windows runtime and native service lifecycle acceptance remain pending.
+
+- Discover supported banking and clan folders from a server root or complete backup, including profiles/profile/config/SC and Log_Storage case variants. Multiple banking mods remain separate sources.
+- Find mission settings in conventional and custom configuration filenames. Show each detected configuration/map and require a choice when ambiguous. Keep the manual override collapsed as a fallback.
+- Separate Players and Clans & parties views, with independent totals, rankings, search and details. Support KR clan JSON and Expansion party binary versions 39–42 plus legacy JSON. Player clan membership never becomes a shared balance.
+- Search up to 60 newest ADM files for Expansion player names, with a 4 MiB tail per file and a 240 MiB refresh budget. Stop early when all needed names are found.
+- Sort by rank in either direction. Simplify setup into manual/detect choices, direct review-and-save, another-server staging, scheduled refresh and collapsed Connection settings. Saving closes Settings to reveal the table; reopening starts with empty discovery inputs while preserving saved sources and schedules.
+
+Existing sources default to Players. Unsupported/corrupt accounts keep the existing diagnostic and cached-result behaviour. Binary party files take precedence over same-stem legacy JSON to avoid counting stale funds twice. No server configurations, banking records, logs or permissions are modified by discovery and scans.
+
+Validation includes Go race tests, vet, browser regression and package inspection. Private version 39 Expansion party data passed count, independent-total and unchanged-hash checks. Versions 40–42 currently have synthetic validation only. A complete 2023 backup exposed different maps in serverDZ.cfg and Config.cfg; both are offered for review instead of assuming which launch configuration was active. See [TESTING.md](TESTING.md) for target-host acceptance.
 
 ## V1.1 — Identity and copy
 

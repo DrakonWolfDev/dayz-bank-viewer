@@ -20,7 +20,7 @@
     <div id="notice" class="notice" role="status" hidden></div>
     <section class="overview" aria-labelledby="overview-title">
       <div><p class="eyebrow">THE ECONOMY, AT A GLANCE</p><h1 id="overview-title">Account overview<span>.</span></h1></div>
-      <div class="server-control"><label for="server-select">Banking source</label><select id="server-select"><option value="">All servers</option></select></div>
+      <div class="server-control"><label for="account-view">Account view</label><select id="account-view"><option value="player">Players</option><option value="clan">Clans &amp; parties</option></select><label for="server-select">Banking source</label><select id="server-select"><option value="">All servers</option></select></div>
     </section>
     <div class="scan-strip"><div><span id="status-badge" class="badge">Connecting</span><span id="last-refresh">Waiting for scan information</span></div><button id="refresh" class="button secondary"><span aria-hidden="true">↻</span> Refresh all</button></div>
     <p id="banking-formats" class="muted" hidden></p>
@@ -28,11 +28,11 @@
     <section class="stats" aria-label="Banking summary">
       <article class="stat"><p>Total accounts</p><strong id="account-count">—</strong><small id="unique-count">Across enabled servers</small><span class="stat-symbol" aria-hidden="true">01</span></article>
       <article class="stat"><p>Total banked currency</p><strong id="total-balance">—</strong><small>Owned currency only</small><span class="stat-symbol" aria-hidden="true">02</span></article>
-      <article class="stat"><p>Highest bank balance</p><strong id="highest-balance">—</strong><small>Largest individual account</small><span class="stat-symbol" aria-hidden="true">03</span></article>
+      <article class="stat"><p>Highest bank balance</p><strong id="highest-balance">—</strong><small id="highest-description">Largest individual account</small><span class="stat-symbol" aria-hidden="true">03</span></article>
     </section>
     <section class="leaderboard" aria-labelledby="leaderboard-title">
-      <div class="table-toolbar"><div><p class="eyebrow">PLAYER ACCOUNTS</p><h2 id="leaderboard-title">The leaderboard <span id="result-count" class="count">0</span></h2></div><div class="search"><label class="sr-only" for="search">Search player name or player ID</label><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search name or player ID…" autocomplete="off"></div></div>
-      <div class="table-scroll"><table><caption class="sr-only">Player accounts ranked by owned currency. Select a player for account details.</caption><thead><tr><th scope="col" class="rank-col">Rank</th><th scope="col" id="name-heading" aria-sort="none"><button id="sort-name" class="sort">Player name <span aria-hidden="true">↕</span></button></th><th scope="col">Player ID</th><th scope="col" id="server-heading">Server</th><th scope="col" id="balance-heading" aria-sort="descending" class="numeric"><button id="sort-balance" class="sort">Bank balance <span aria-hidden="true">↓</span></button></th></tr></thead><tbody id="accounts"></tbody></table></div>
+      <div class="table-toolbar"><div><p class="eyebrow" id="account-category">PLAYER ACCOUNTS</p><h2 id="leaderboard-title">The leaderboard <span id="result-count" class="count">0</span></h2></div><div class="search"><label class="sr-only" id="search-label" for="search">Search player name or player ID</label><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search name or player ID…" autocomplete="off"></div></div>
+      <div class="table-scroll"><table><caption class="sr-only" id="account-caption">Player accounts ranked by owned currency. Select a player for account details.</caption><thead><tr><th scope="col" id="rank-heading" aria-sort="none" class="rank-col"><button id="sort-rank" class="sort">Rank <span aria-hidden="true">↕</span></button></th><th scope="col" id="name-heading" aria-sort="none"><button id="sort-name" class="sort"><span id="name-column-label">Player name</span> <span aria-hidden="true">↕</span></button></th><th scope="col" id="id-heading">Player ID</th><th scope="col" id="server-heading">Server</th><th scope="col" id="balance-heading" aria-sort="descending" class="numeric"><button id="sort-balance" class="sort">Bank balance <span aria-hidden="true">↓</span></button></th></tr></thead><tbody id="accounts"></tbody></table></div>
       <div id="empty" class="empty" hidden><div class="empty-mark" aria-hidden="true">◈</div><h3 id="empty-title">Connect your first server</h3><p id="empty-text">Add a local banking directory to start viewing accounts.</p><button id="empty-settings" class="button primary">Add a server</button></div>
       <div class="table-footer"><span id="page-description" role="status">No accounts to display</span><div class="pagination"><button id="previous" class="button secondary" aria-label="Previous page">← Previous</button><span id="page-number">1 / 1</span><button id="next" class="button secondary" aria-label="Next page">Next →</button></div></div>
     </section>
@@ -41,26 +41,51 @@
   <dialog id="settings" aria-labelledby="settings-title">
     <form id="settings-form">
       <div class="dialog-heading"><div><p class="eyebrow">LOCAL CONFIGURATION</p><h2 id="settings-title">Settings</h2></div><button id="settings-close" type="button" class="icon-button" aria-label="Close settings">×</button></div>
-      <p class="muted">Connect local player account folders. Banking / KR Banking, DayZ-Banking and Expansion ATM formats are detected automatically. Your original account files are always read-only.</p>
       <button id="settings-help" type="button" class="button secondary">Settings help</button>
-      <div class="section-heading"><h3>DayZ servers</h3><button type="button" id="add-server" class="button secondary">+ Add server</button></div>
-      <div id="server-fields"></div>
-      <section class="settings-section"><h3>Scheduled refresh</h3><p class="muted" id="timezone-description">Times use the server computer’s local timezone.</p><label for="refresh-times">Daily scan times</label><input id="refresh-times" placeholder="06:00, 18:00" autocomplete="off"><small class="field-help">24-hour times, separated by commas. Leave blank for manual refresh only.</small></section>
-      <section class="settings-section"><h3>Connection</h3><label for="listen">Listen address</label><input id="listen" required placeholder="127.0.0.1:20784" autocomplete="off"><small class="field-help">Address changes take effect after restarting the app. Keep localhost for access from this computer only.</small></section>
-      <section class="settings-section"><h3>Application updates</h3><p>Installed version: <span class="version">Loading…</span></p><p class="muted">Checks GitHub only when requested. No updates are downloaded or installed.</p><button id="check-updates" type="button" class="button secondary">Check for updates</button><p id="update-result" role="status" aria-live="polite"></p><a id="update-link" target="_blank" rel="noopener noreferrer" hidden>View release and downloads</a></section>
-      <p class="muted">Licensed under <a href="/licence" target="_blank" rel="noopener">AGPL-3.0-only</a>. <a href="https://github.com/DrakonWolfDev/dayz-bank-viewer" target="_blank" rel="noopener noreferrer">Corresponding source</a>.</p>
-      <p id="settings-error" class="form-error" role="alert" hidden></p>
-      <div class="dialog-footer"><button id="settings-cancel" type="button" class="button secondary">Cancel</button><button id="save-settings" type="submit" class="button primary">Save settings</button></div>
+      <section class="settings-section" aria-labelledby="discovery-title">
+        <h3 id="discovery-title">Find a server’s folders</h3>
+        <p class="muted">Choose the server directory or a complete backup. Review the detected mission, banking mods, clan accounts and log folders before adding them.</p>
+        <label for="discovery-root">Server directory</label><input id="discovery-root" placeholder="e.g. /srv/dayz or D:/DayZ/Server1" autocomplete="off" spellcheck="false">
+        <details class="discovery-advanced"><summary>Custom server configuration file</summary><label for="discovery-config">Server configuration file (optional)</label><input id="discovery-config" placeholder="Absolute path inside this server directory" autocomplete="off" spellcheck="false"><small class="field-help">Leave blank to automatically check configuration files in the server and recognised profile folders. Use this override only if detection misses the file you need.</small></details>
+        <div class="setup-actions"><button id="manual-server" type="button" class="button secondary">Manually add server</button><button id="discover-server" type="button" class="button secondary">Detect server folders</button></div>
+        <p id="discovery-status" role="status" aria-live="polite"></p>
+        <div id="discovery-preview" hidden>
+          <p class="muted">Map names are inferred from mission settings. Confirm these are the server and folders you want; a backup does not identify the current launch configuration.</p>
+          <label for="discovery-mission">Detected mission / map</label><select id="discovery-mission"></select><p id="discovery-mission-details" class="muted"></p>
+          <label for="discovery-name">Server name for these sources</label><input id="discovery-name" maxlength="80" autocomplete="off">
+          <ul id="discovery-warnings" class="discovery-warnings"></ul>
+          <div id="discovery-sources"></div>
+          <button id="add-detected" type="button" class="button secondary">Add another server</button>
+          <p class="muted">Review these choices, set your refresh times and save. To set up several servers together, add another before saving.</p>
+        </div>
+      </section>
+      <div id="settings-details" hidden>
+        <p id="source-summary" class="muted" role="status"></p>
+        <details id="source-editor" class="settings-section"><summary>Edit connected sources</summary><div id="server-fields"></div></details>
+        <button type="button" id="add-server" class="button secondary" hidden>Add another server</button>
+        <section id="schedule-settings" class="settings-section"><h3>Scheduled refresh</h3><p class="muted" id="timezone-description">Times use the server computer’s local timezone.</p><label for="refresh-times">Daily scan times</label><input id="refresh-times" placeholder="06:00, 18:00" autocomplete="off"><small class="field-help">24-hour times, separated by commas. Leave blank for manual refresh only.</small></section>
+        <details id="connection-settings" class="settings-section"><summary>Connection</summary><label for="listen">Listen address</label><input id="listen" required placeholder="127.0.0.1:20784" autocomplete="off"><small class="field-help">Address changes take effect after restarting the app. Keep localhost for access from this computer only.</small></details>
+        <p id="settings-error" class="form-error" role="alert" hidden></p>
+        <div class="dialog-footer"><button id="settings-cancel" type="button" class="button secondary">Cancel</button><button id="save-settings" type="submit" class="button primary">Save settings</button></div>
+        <section id="update-settings" class="settings-section"><h3>Application updates</h3><p>Installed version: <span class="version">Loading…</span></p><p class="muted">Checks GitHub only when requested. No updates are downloaded or installed.</p><button id="check-updates" type="button" class="button secondary">Check for updates</button><p id="update-result" role="status" aria-live="polite"></p><a id="update-link" target="_blank" rel="noopener noreferrer" hidden>View release and downloads</a></section>
+        <p class="muted">Licensed under <a href="/licence" target="_blank" rel="noopener">AGPL-3.0-only</a>. <a href="https://github.com/DrakonWolfDev/dayz-bank-viewer" target="_blank" rel="noopener noreferrer">Corresponding source</a>.</p>
+      </div>
     </form>
   </dialog>
   <dialog id="help-dialog" aria-labelledby="help-title">
     <div class="dialog-heading"><div><p class="eyebrow">USING THE VIEWER</p><h2 id="help-title">Help</h2></div><button id="help-close" type="button" class="icon-button" aria-label="Close help">×</button></div>
-    <p>Your banking files stay read-only. Settings change how the viewer reads and displays them. This guide is included with the app and works offline.</p>
+    <p>Your banking files stay read-only. Settings change how the viewer reads and displays them. New setup starts with Detect server folders or Manually add server; scheduled refresh and the rest of Settings appear after choosing. Connection stays collapsed, and Save closes Settings and returns to the account table. This guide is included with the app and works offline.</p>
     <div class="help-content">
+      <details><summary>Automatic folder detection</summary>
+        <p>In Settings, enter the server directory and select Detect server folders. Discovery checks that directory and direct profiles, profile, config and SC folders, ignoring case. It looks for supported banking and shared-account folders, direct ADM logs and Log_Storage. It does not search recursively through other backups or servers.</p>
+        <p>The mission template in configuration files suggests the map. Detection checks .cfg, .dz, .conf and .config files in the server and recognised profile folders, including custom filenames such as Config.cfg. If several configurations are found, choose the mission you want. A custom configuration file can be supplied inside the selected directory. Comments are ignored; preprocessor directives require manual review. Configuration passwords and account contents are never shown in the discovery response.</p>
+        <p>Each banking mod and clan folder is listed separately. Select the folders you want, review their paths and log choices, then choose refresh times and Save settings. Add another server stages the current choices and starts another root. Manually add server opens the source fields if you need to set paths yourself. Folder names are hints: a recognised sample is checked before a source is selected by default. Empty or unverified folders stay unchecked. Existing source folders are not added twice.</p>
+      </details>
       <details open><summary>What each source setting does</summary>
         <ul>
           <li><strong>Server name:</strong> the label shown in the source selector and account list. Include the mod name when one server has several banking sources.</li>
-          <li><strong>Absolute banking directory:</strong> the full path to the folder containing player account JSON files, on the computer running the viewer. Select the account folder itself; subfolders are not searched.</li>
+          <li><strong>Account type:</strong> choose Players or Clans &amp; parties. Each view has separate totals and rankings.</li>
+          <li><strong>Absolute banking directory:</strong> the full path to the folder containing the selected account type’s JSON files, on the computer running the viewer. Select the account folder itself; subfolders are not searched.</li>
           <li><strong>Admin log directory:</strong> an optional folder containing this server’s ADM logs, used to find names for Expansion accounts. Leave blank for automatic lookup in recognised layouts. A supplied path replaces automatic lookup.</li>
           <li><strong>Enabled:</strong> allows startup, manual and scheduled scans. Disabled sources are excluded from All servers; selecting one may still show its cached accounts.</li>
           <li><strong>Add server:</strong> adds another banking source. Several sources can belong to the same physical server.</li>
@@ -76,7 +101,7 @@
           <li><strong>DayZ-Banking / DC Banking:</strong> <code>DC_Banking/PlayerDatabase</code></li>
           <li><strong>DayZ Expansion:</strong> <code>ExpansionMod/ATM</code></li>
         </ul>
-        <p>Formats are detected from file contents. Banking and KR Banking share fields, so the viewer labels them as compatible rather than claiming which mod created them. Settings-editor exports, KR clan accounts and Expansion shared party accounts are outside this player-account view.</p>
+        <p>Formats are detected from file contents. Banking and KR Banking share fields, so the viewer labels them as compatible rather than claiming which mod created them. For shared accounts, choose Clans &amp; parties in the source settings. KR Banking uses <code>KR_BANKING/ClanDataBase</code>; Expansion party files use <code>ExpansionMod/Groups</code>. Expansion binary group versions 39–42 and legacy party JSON are supported. Other versions are reported as unreadable. Banking and DC Banking have no supported shared-account adapter. Settings-editor exports are not accounts.</p>
       </details>
       <details><summary>Two banking mods on one server</summary>
         <ol>
@@ -87,9 +112,9 @@
         <p>All servers combines enabled sources and keeps accounts separate. Adding the same folder twice counts its balances twice. Totals add raw currency amounts without exchange rates; view sources separately if currencies differ or records mirror the same funds.</p>
       </details>
       <details><summary>Expansion names, IDs and admin logs</summary>
-        <p>Expansion ATM files contain a DayZ player ID and balance, without a name or Steam64 ID. The viewer matches that exact DayZ ID to local ADM entries to find a last observed name. Unmatched accounts show Unnamed player. Names can change; they are not used to establish identity.</p>
-        <p>For an <code>ExpansionMod/ATM</code> source, automatic lookup checks its profiles folder and existing <code>log_storage</code> inside it. When that folder is named <code>profiles</code> or <code>profile</code>, it also checks the sibling server-root <code>log_storage</code>. Set Admin log directory for other layouts.</p>
-        <p>Admin logging must already be enabled on the server with <code>-adminlog</code>. Lookup searches up to 20 ADM files, newest modification time first, reading at most the last 4 MiB per file and 32 MiB per refresh. Missing or limited log reads are shown separately from banking errors.</p>
+        <p>Expansion ATM files contain a DayZ player ID and balance, without a name or Steam64 ID. The viewer matches that exact DayZ ID to local ADM entries to find a last observed name. Unmatched accounts show Unnamed player. Names can change; they are not used to establish identity. Up to 60 ADM files are searched, newest first, with a 4 MiB tail per file and 240 MiB per refresh. Search stops early when every needed name is found.</p>
+        <p>For an <code>ExpansionMod/ATM</code> source, automatic lookup checks its profiles folder and existing <code>log_storage</code> inside it. When that folder is named <code>profiles</code>, <code>profile</code>, <code>config</code> or <code>SC</code>, it also checks the sibling server-root <code>log_storage</code>. Set Admin log directory for other layouts.</p>
+        <p>Admin logging must already be enabled on the server with <code>-adminlog</code>. Lookup searches up to 60 ADM files, newest modification time first, reading at most the last 4 MiB per file and 240 MiB per refresh. Missing or limited log reads are shown separately from banking errors.</p>
         <p>No Steam-ID conversion library is included. ADM name matching does not recover Steam64 IDs. Unique player ID counts keep DayZ and Steam64 IDs separate, so one person may count twice across those systems.</p>
       </details>
       <details><summary>Refresh times, connection and updates</summary>
