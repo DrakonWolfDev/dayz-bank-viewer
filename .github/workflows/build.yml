@@ -15,6 +15,20 @@ permissions:
   contents: read
 
 jobs:
+  website-connection:
+    name: Check website dispatch permission
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Send a connection check without changing downloads
+        env:
+          GH_TOKEN: ${{ secrets.WOLF_FORGE_SITE_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN" || { echo 'WOLF_FORGE_SITE_TOKEN is missing' >&2; exit 1; }
+          gh api --method POST repos/DrakonWolfDev/wolf-forge-static/dispatches \
+            -f event_type=desktop_release_connection_check
+
   windows:
     name: Windows native tests
     runs-on: windows-2022

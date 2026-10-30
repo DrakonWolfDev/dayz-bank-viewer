@@ -23,6 +23,8 @@ Set the repository Actions secret **WOLF_FORGE_SITE_TOKEN** to a fine-grained Gi
 
 The secret must be maintained or rotated before its expiry. Workflow logs report a missing secret or rejected request without printing the credential.
 
+Pushes to `main` also test the credential with a `desktop_release_connection_check` dispatch. The website receiver listens only for `desktop_release_published`, so this tests the real dispatch permission without changing the manifest or deploying a release. This job does not run for pull requests or tagged release builds.
+
 ## Recovery
 
 - A failed build publishes nothing. Fix the source, rerun verification and use a new version/tag if the tagged source changes.
