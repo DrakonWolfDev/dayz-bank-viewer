@@ -1,0 +1,18 @@
+# Live server data must never be committed.
+/corpus/
+/config.json
+/config.json.*
+/.dayz-bank-config-*
+/dist/
+/build/
+/artifacts/
+/.tools/
+/.venv/
+/graphify-out/
+/.agents/
+/.aws/
+/.codex/
+*.log
+coverage.out
+.DS_Store
+Thumbs.db

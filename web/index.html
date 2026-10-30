@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#171D20">
+  <meta name="description" content="A local, read-only view of your DayZ server economy.">
+  <title>DayZ Bank Viewer</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to accounts</a>
+  <header class="topbar">
+    <div class="brand"><img src="/favicon.svg" width="38" height="38" alt=""><div><strong>DAYZ <span>BANK VIEWER</span></strong><small>SERVER ECONOMY / LOCAL ACCESS</small></div></div>
+    <div class="header-actions"><span class="readonly"><span aria-hidden="true">◈</span> Read-only banking data</span><button id="settings-open" class="button secondary">Settings</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <div id="notice" class="notice" role="status" hidden></div>
+    <section class="overview" aria-labelledby="overview-title">
+      <div><p class="eyebrow">THE ECONOMY, AT A GLANCE</p><h1 id="overview-title">Account overview<span>.</span></h1><p class="subtitle">Your players. Their balances. One clear view.</p></div>
+      <div class="server-control"><label for="server-select">Banking source</label><select id="server-select"><option value="">All servers</option></select></div>
+    </section>
+    <div class="scan-strip"><div><span id="status-badge" class="badge">Connecting</span><span id="last-refresh">Waiting for scan information</span></div><button id="refresh" class="button secondary"><span aria-hidden="true">↻</span> Refresh all</button></div>
+    <section id="scan-warning" class="warning" aria-label="Scan information" hidden></section>
+    <section class="stats" aria-label="Banking summary">
+      <article class="stat"><p>Total accounts</p><strong id="account-count">—</strong><small id="unique-count">Across enabled servers</small><span class="stat-symbol" aria-hidden="true">01</span></article>
+      <article class="stat"><p>Total banked currency</p><strong id="total-balance">—</strong><small>Owned currency only</small><span class="stat-symbol" aria-hidden="true">02</span></article>
+      <article class="stat"><p>Highest bank balance</p><strong id="highest-balance">—</strong><small>Largest individual account</small><span class="stat-symbol" aria-hidden="true">03</span></article>
+    </section>
+    <section class="leaderboard" aria-labelledby="leaderboard-title">
+      <div class="table-toolbar"><div><p class="eyebrow">PLAYER ACCOUNTS</p><h2 id="leaderboard-title">The leaderboard <span id="result-count" class="count">0</span></h2></div><div class="search"><label class="sr-only" for="search">Search player name or Steam64 ID</label><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search name or Steam64 ID…" autocomplete="off"></div></div>
+      <div class="table-scroll"><table><caption class="sr-only">Player accounts ranked by owned currency. Select a player for account details.</caption><thead><tr><th scope="col" class="rank-col">Rank</th><th scope="col" id="name-heading" aria-sort="none"><button id="sort-name" class="sort">Player name <span aria-hidden="true">↕</span></button></th><th scope="col">Steam64 ID</th><th scope="col" id="server-heading">Server</th><th scope="col" id="balance-heading" aria-sort="descending" class="numeric"><button id="sort-balance" class="sort">Bank balance <span aria-hidden="true">↓</span></button></th></tr></thead><tbody id="accounts"></tbody></table></div>
+      <div id="empty" class="empty" hidden><div class="empty-mark" aria-hidden="true">◈</div><h3 id="empty-title">Connect your first server</h3><p id="empty-text">Add a local banking directory to start viewing accounts.</p><button id="empty-settings" class="button primary">Add a server</button></div>
+      <div class="table-footer"><span id="page-description" role="status">No accounts to display</span><div class="pagination"><button id="previous" class="button secondary" aria-label="Previous page">← Previous</button><span id="page-number">1 / 1</span><button id="next" class="button secondary" aria-label="Next page">Next →</button></div></div>
+    </section>
+    <footer class="app-footer"><span><span class="footer-dot" aria-hidden="true"></span> Independent of your DayZ server</span><span>DayZ Bank Viewer <span class="version">v1.0.0</span></span></footer>
+  </main>
+  <dialog id="settings" aria-labelledby="settings-title">
+    <form id="settings-form">
+      <div class="dialog-heading"><div><p class="eyebrow">LOCAL CONFIGURATION</p><h2 id="settings-title">Settings</h2></div><button id="settings-close" type="button" class="icon-button" aria-label="Close settings">×</button></div>
+      <p class="muted">Connect local banking folders. Your original account files are always read-only.</p>
+      <div class="section-heading"><h3>DayZ servers</h3><button type="button" id="add-server" class="button secondary">+ Add server</button></div>
+      <div id="server-fields"></div>
+      <section class="settings-section"><h3>Scheduled refresh</h3><p class="muted" id="timezone-description">Times use the server computer’s local timezone.</p><label for="refresh-times">Daily scan times</label><input id="refresh-times" placeholder="06:00, 18:00" autocomplete="off"><small class="field-help">24-hour times, separated by commas. Leave blank for manual refresh only.</small></section>
+      <section class="settings-section"><h3>Connection</h3><label for="listen">Listen address</label><input id="listen" required placeholder="127.0.0.1:20784" autocomplete="off"><small class="field-help">Address changes take effect after restarting the app. Keep localhost for access from this computer only.</small></section>
+      <p id="settings-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-footer"><button id="settings-cancel" type="button" class="button secondary">Cancel</button><button id="save-settings" type="submit" class="button primary">Save settings</button></div>
+    </form>
+  </dialog>
+  <dialog id="account-dialog" aria-labelledby="account-title"><div class="dialog-heading"><div><p class="eyebrow">PLAYER ACCOUNT</p><h2 id="account-title"></h2></div><button id="account-close" class="icon-button" aria-label="Close account details">×</button></div><dl id="account-details"></dl><p class="muted">Only owned currency contributes to leaderboard rankings.</p></dialog>
+  <noscript><p class="notice">Enable JavaScript to use the dashboard. All assets are served locally.</p></noscript>
+</body>
+</html>

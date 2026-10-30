@@ -1,0 +1,245 @@
+# DayZ Bank Viewer — Version 1.0
+## Development Brief for Codex
+
+### Project overview
+
+Build **DayZ Bank Viewer**, a lightweight, self-hosted, read-only banking database viewer for DayZ server administrators.
+
+The application reads existing player banking JSON files from one or more locally accessible server directories and presents their contents through a modern web dashboard.
+
+The primary target is **Windows Server**, with native compatibility for **Debian-based Linux distributions**.
+
+The application must be portable, efficient, straightforward to configure and completely independent of the running DayZ server.
+
+**Core philosophy: Complex underneath, calm and simple on the surface.**
+
+This is deliberately a small, tightly scoped application. Resist feature creep.
+
+---
+
+## 1. Technology and architecture
+
+Use:
+
+- **Go** for the backend, HTTP server and JSON processing.
+- **HTML, CSS and vanilla JavaScript** for the frontend.
+- Go's embedded filesystem for frontend assets.
+- Go's standard library wherever practical.
+- No database dependency.
+- No Node.js runtime, React, Electron or other large frameworks.
+- No external services or telemetry.
+
+The application should compile into a standalone executable for:
+
+- Windows x64 — primary platform.
+- Linux x64 — Debian/Ubuntu compatible.
+
+The same frontend and backend architecture must work on both.
+
+Default web interface:
+
+`http://127.0.0.1:20784`
+
+The listening address and port must be configurable.
+
+Use TCP port **20784** by default. Handle port conflicts gracefully with a clear error message.
+
+Keep resource consumption low, particularly while idle.
+
+## 2. Multiple DayZ servers
+
+Support any reasonable number of configured DayZ servers.
+
+Each server has:
+
+- A user-defined name.
+- A local banking database directory.
+- An enabled/disabled status.
+- Its own scan state and cached results.
+- Its own last successful scan timestamp.
+
+Example configuration:
+
+```json
+{
+  "servers": [
+    {
+      "name": "DayZ Server 1",
+      "path": "D:/DayZ/Server1/Banking",
+      "enabled": true
+    },
+    {
+      "name": "DayZ Server 2",
+      "path": "D:/DayZ/Server2/Banking",
+      "enabled": true
+    }
+  ]
+}
+```
+
+Server directories are on the same machine as the application for v1.0.
+
+Do not implement FTP, SFTP, remote agents or network discovery.
+
+Allow administrators to add, rename, edit and remove server configurations through the web interface.
+
+Removing a server configuration must never remove its banking files.
+
+## 3. Banking JSON reader
+
+Version 1.0 supports one banking data format.
+
+The existing JSON files contain fields including:
+
+- `m_Steam64ID`
+- `m_PlayerName`
+- `m_OwnedCurrency`
+- `m_BonusCurrency`
+- `m_PayCheckBonus`
+- `m_ClanID`
+
+Important:
+
+**`m_OwnedCurrency` is the actual bank balance used for leaderboard rankings.**
+
+Do not add bonus currency or paycheck bonuses to this figure.
+
+Keep optional values separate where appropriate.
+
+Steam64 IDs must always be treated as strings to prevent precision loss.
+
+Use appropriate integer types for currency values and preserve numeric precision in API responses and exports.
+
+Each player account is stored in an individual JSON file.
+
+The reader should:
+
+1. Enumerate the banking directory.
+2. Read the relevant JSON files.
+3. Validate their structure.
+4. Extract player account information.
+5. Build the leaderboard.
+6. Calculate summary statistics.
+7. Produce an immutable in-memory snapshot for the frontend.
+
+Do not modify the original JSON files under any circumstances.
+
+### Future compatibility
+
+Structure the JSON parsing behind a small, clearly defined reader interface.
+
+This will allow additional DayZ banking formats, such as Expansion Banking, to be supported later.
+
+**Only implement the currently supplied banking format in v1.0.**
+
+Do not create speculative readers or an elaborate plugin framework.
+
+If the actual JSON sample is not available in the development environment, make the parser testable using small synthetic fixtures matching the documented fields. Do not hardcode sample leaderboard data into the application.
+
+## 4. Refresh and caching
+
+Support two refresh methods.
+
+**Manual refresh**
+
+An administrator can request a new scan through the dashboard, either for a specific server or all configured servers.
+
+**Scheduled refresh**
+
+Allow administrators to configure automatic scan times, such as 06:00 and 18:00, using the host machine's local timezone.
+
+Automatic refresh must be optional.
+
+### Reliability requirements
+
+- Never scan the files on every browser request.
+- Keep the latest successful results in memory.
+- Scan servers independently.
+- Prevent overlapping scans of the same server.
+- Handle files that are temporarily locked, unavailable or being written.
+- Retry transient file-read or JSON errors a limited number of times.
+- Do not crash because an individual file is corrupt.
+- Report skipped or unreadable files clearly.
+- Never silently present an incomplete scan as a complete result.
+- Preserve the previous successful snapshot when a scan fails entirely.
+- If a scan produces partial results, display their incomplete status clearly.
+- Perform snapshot replacement atomically so the frontend never sees half-updated data.
+
+A missing directory must produce an understandable error message rather than crash the application.
+
+The DayZ server must remain unaffected by the viewer's activity.
+
+## 5. Web dashboard and visual design
+
+The interface is an important part of this project.
+
+It should look like a polished, finished application rather than a generic developer administration panel.
+
+### Design direction
+
+Use a modern, understated DayZ-inspired appearance.
+
+Colour palette:
+
+| Element | Colour |
+|---|---|
+| Main background | `#171D20` |
+| Secondary surfaces | `#263038` |
+| Muted olive accents | `#536452` |
+| Warm amber highlights | `#C6A46A` |
+| Primary text | `#E8E5DC` |
+
+Visual principles:
+
+- Dark theme by default.
+- Clean, readable typography.
+- Comfortable spacing.
+- Rounded but restrained cards.
+- Subtle borders and visual separation.
+- Clear information hierarchy.
+- Strong text contrast and keyboard accessibility.
+- Responsive layout suitable for desktop and tablet browsers.
+- Minimal animation.
+- No camouflage backgrounds, excessive military imagery or decorative clutter.
+
+**Aim for calm, professional software with a subtle DayZ identity.**
+
+Do not incorporate Wolf Forge branding.
+
+### Main dashboard
+
+The main dashboard should include:
+
+**Header**
+
+- DayZ Bank Viewer title.
+- Server selection dropdown.
+- Current scan status.
+- Last successful refresh timestamp.
+- Settings access.
+
+**Summary cards**
+
+For the selected server:
+
+- Total player accounts.
+- Total banked currency.
+- Highest individual bank balance.
+
+For the All Servers view, show network-wide totals and player counts, while clearly distinguishing account counts from unique players.
+
+**Player leaderboard**
+
+Display a searchable, sortable table with:
+
+- Rank.
+- Player name.
+- Steam64 ID.
+- Bank balance.
+- Server name when viewing all servers.
+
+Support sorting by player name and balance.
+
+Default ordering is highest bank balance first.
+
+Allow searching by player name or Steam64 ID
